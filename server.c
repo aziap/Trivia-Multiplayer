@@ -78,6 +78,11 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    // Riutilizza il socket se 
+    // TODO: documentare meglio
+    int yes = 1;
+    setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+
     // Assegno indirizzo e porta
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
@@ -124,9 +129,9 @@ int main() {
                 // TODO: close all
                 exit(EXIT_FAILURE);
             }
+            debug("Nuova connessione stabilita. Socket: %d\n", newfd);
         }
 
-        debug("Nuova connessione stabilita. Socket: %d\n", newfd);
 
         // Imposto il socket come non bloccante
         fcntl(newfd, F_SETFL, O_NONBLOCK);
@@ -140,9 +145,18 @@ int main() {
         int sd;
         // Controllo se ci sono messaggi dai client connessi
         for (int i = 0; i < numclient; i++) {
+            
+            debug("Controllo se ci sono nuovi messaggi\n");
+            
             sd = client_socket[i];
+         
+            debug("esamino il socket %d\n", sd);
+            
             if (FD_ISSET(sd, &readfd)) {
                 int numReceived = read(sd, buffer, DIM_BUFFER);
+                
+                debug("ricevuti %d byte\n", numReceived);
+                
                 if (numReceived == 0) {
                     // Client disconnesso
                     debug("Client disconnesso, socket: %d\n", sd);
@@ -159,10 +173,18 @@ int main() {
                     closeAll(listener, client_socket, &numclient);
                     exit(EXIT_FAILURE);
                 }
+                if (numReceived < 0) continue;
                 // C'è un nuovo messaggio!
-                buffer[strcspn(buffer, "\n")] = 0;
-                debug("Il client dice: %s\n");
+
+                debug("Newline at %d\n", strcspn(buffer, "\n"));
                 
+                buffer[strcspn(buffer, "\n")] = 0;
+                
+                debug("Il client dice: %s\n", buffer);
+                // DEBUG
+                char* str ="Yo";
+                send(sd, str, sizeof(str), 0);
+                // END DEBUG
             }
         } // END for(;;) - handling ready client sockets 
     } // END while() - main loop
