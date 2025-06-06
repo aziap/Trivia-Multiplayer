@@ -174,6 +174,7 @@ int main() {
                     exit(EXIT_FAILURE);
                 }
                 if (numReceived < 0) continue;
+                
                 // C'è un nuovo messaggio!
 
                 debug("Newline at %d\n", strcspn(buffer, "\n"));
