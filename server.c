@@ -1,0 +1,171 @@
+
+// DEBUG
+#ifndef DEBUG_ON
+#define DEBUG_ON
+#endif
+
+#include "debug.h"
+// END DEBUG
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/select.h>
+#include <time.h>
+#include <errno.h>
+#include <fcntl.h>
+#include "costanti.h"
+
+
+// L'indirizzo del server è definito in costanti.h
+#define MAX_CLIENTS 100
+#define PORT 1919 
+#define MAX_BACKLOG 128 // Numero massimo di connessioni in attesa 
+
+// TODO: spostare in logica di gioco
+struct Giocatore* giocatori[MAX_CLIENTS];
+
+// posso fare send e recv nel server se mando il contenuto ricevuto nel buffer al game-logic-handler (glh) tramite una funzione che mi ritorna il contenuto del buffer da inviare. Il glh modifica il contenuto del buffer, ma, dopo la send, il server lo azzera
+
+/**
+ * read -> recv
+ * send -> write (probabilmente il write fd_set non mi serve)
+*/
+
+
+static inline void disconnettiClient(int index, int *sdArr, int *nextSd) {
+    // DEBUG
+    int sd = sdArr[index];
+    
+    close(sdArr[index]);
+    // Sposto l'ultimo sd nella posizione appena liberata
+    //      e decremento il numero di client
+    sdArr[index] = sdArr[--(*nextSd)];
+
+    // TODO spostare l'ultimo elemento dei client_socket al posto di quello appena eliminato
+    // TODO IMPORTANTISSIMO: dire al game logic handler di rimuovere l'entry corrispondente dall'indice socket -> Giocatore  
+    debug("TODO: rimuovere %d dall'indice!", sd);
+}
+
+static inline void closeAll( int listenerSd, int* sdArr, int* nextSd) {
+    while(*nextSd > 0) {
+        close(sdArr[--(*nextSd)]);
+    }
+    close((listenerSd));
+}
+
+
+int main() {
+    int listener, newfd, maxfd, ret; 
+    int backlog = MAX_CLIENTS <= MAX_BACKLOG ? MAX_CLIENTS : MAX_BACKLOG;
+    // TODO: incrementare a nuova connessione e decrementare a chiusura di una connessione (per la chiusura potrei scrivere una inline function)
+    int numclient = 0; 
+    int client_socket[MAX_CLIENTS] = {0};
+    
+    fd_set master;
+    fd_set readfd;
+    
+    struct sockaddr_in address;
+    socklen_t addrlen = sizeof(address);
+
+    char buffer[DIM_BUFFER] = {0};
+
+    // Creo il socket listener
+    if((listener = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("Creazione del socket del server fallita");
+        exit(EXIT_FAILURE);
+    }
+
+    // Assegno indirizzo e porta
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(PORT);
+
+    // Binding del listener
+    if (bind(listener, (struct sockaddr *)&address, addrlen) < 0) {
+        perror("Bind fallito");
+        close(listener);
+        exit(EXIT_FAILURE);
+    }
+
+    // Metto il socket in ascolto di richieste di connessione
+    if (listen(listener, backlog) < 0) {
+        perror("Listen fallito");
+        exit(EXIT_FAILURE);
+    }
+
+    debug("Trivia Game Server in ascolto sulla porta %d\n", PORT);
+
+    // Inserisco il listener nel set master
+    FD_SET(listener, &master);
+    maxfd = listener;
+
+    while (1) {
+        readfd = master;
+
+        // Se la select viene interrotta da un segnale, riprovo
+        do {
+            ret = select(maxfd + 1, &readfd, NULL, NULL, NULL);
+        } while (ret < 0 && errno == EINTR);
+
+        if (ret < 0) {
+            perror("Select fallito");
+            // TODO: close all
+            exit(EXIT_FAILURE);
+        }
+
+
+        // Controllo se ci sono nuove connessioni
+        if (FD_ISSET(listener, &readfd)) {
+            if ((newfd = accept(listener, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0) {
+                perror("Accept fallito");
+                // TODO: close all
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        debug("Nuova connessione stabilita. Socket: %d\n", newfd);
+
+        // Imposto il socket come non bloccante
+        fcntl(newfd, F_SETFL, O_NONBLOCK);
+        // Lo inserisco nell'array dei client socket e nel set master 
+        FD_SET(newfd, &master);
+        if (maxfd < newfd) maxfd = newfd;
+        client_socket[numclient++] = newfd;
+
+        // TODO: dire al glh di aggiungere una entry con un nuovo giocatore (per ora a NULL) nell'indice
+        
+        int sd;
+        // Controllo se ci sono messaggi dai client connessi
+        for (int i = 0; i < numclient; i++) {
+            sd = client_socket[i];
+            if (FD_ISSET(sd, &readfd)) {
+                int numReceived = read(sd, buffer, DIM_BUFFER);
+                if (numReceived == 0) {
+                    // Client disconnesso
+                    debug("Client disconnesso, socket: %d\n", sd);
+                    // Chiudo il socket e decremento il numero di giocatori
+                    disconnettiClient(i, client_socket, &numclient);
+                    continue;
+                }
+                if (numReceived < 0 
+                    && errno != EWOULDBLOCK 
+                    && errno != EWOULDBLOCK 
+                    && errno != EINTR ) 
+                {
+                    perror("recv() failed:");
+                    closeAll(listener, client_socket, &numclient);
+                    exit(EXIT_FAILURE);
+                }
+                // C'è un nuovo messaggio!
+                buffer[strcspn(buffer, "\n")] = 0;
+                debug("Il client dice: %s\n");
+                
+            }
+        } // END for(;;) - handling ready client sockets 
+    } // END while() - main loop
+
+    return 0;
+}
