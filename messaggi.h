@@ -78,26 +78,27 @@ char* pack(msg_t type, rnksize_t len, uint8_t flags, char* payload, char* buffer
     if ((type > lastSrvType && type < firstCliType)
     || type > lastCliType)
     {
-        printf("Errore: tipo del messaggio non valido: %s\n", type);
+        printf("Errore: tipo del messaggio non valido: %u\n", type);
         // Lascio la gestione al chiamante
         return NULL;
     }
 
     *buffer = '\0';
-
-    switch(type) {
-        case UNEXPECTED_ERR_T :
-        case MAX_CLI_REACH_T :
-        case NICK_UNAVAIL_T :
-        case ENDQUIZ_T :
-        case SHOW_SCORE_T :
+    if( type == UNEXPECTED_ERR_T 
+        || type == MAX_CLI_REACH_T 
+        || type == NICK_UNAVAIL_T 
+        || type == ENDQUIZ_T 
+        || type == SHOW_SCORE_T 
+        ){
             // Mi interessa solo il tipo
-            *buffer++ = type >> sizeof(msg_t);
+            *buffer >> sizeof(msg_t)*8;
+            *buffer = type;
             return buffer;
-        default :
-            debug("Il tipo di messaggio %u non è stato gestito\n", type);
-            return NULL;
-    }
+        }
+        
+        debug("Il tipo di messaggio %u non è stato gestito\n", type);
+        return NULL;
+    
 }
 
 
