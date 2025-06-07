@@ -57,10 +57,10 @@ int main() {
 	// stampaClassifica();
 
 	char* payloadRank = serializzaClassifica();
-	printf("Dimensione della stringa serializzata: %llu", sizeof(*payloadRank));
-	// printf("\tprimo record della classifica:\nTema: %u\nGiocatore: %s\nPunti: %u\n", payloadRank[0], payloadRank + 1, payloadRank[1 + DIM_NICK]);
-
-
+	int len = (DIM_NICK + 2) * 3;	// classifica in questo caso 
+	stampaClassificaClient(payloadRank, len);
+	
+	free(payloadRank);
 
 	// END DEBUG
 
