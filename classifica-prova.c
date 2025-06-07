@@ -3,7 +3,7 @@
 // #endif
 
 #include "classifica.h"
-
+#include "client.h"
 
 int main() {
 	debug("Why did you leave me? D:\n");
@@ -57,7 +57,10 @@ int main() {
 	// stampaClassifica();
 
 	char* payloadRank = serializzaClassifica();
-	printf("\tprimo record della classifica:\nTema: %u\nGiocatore: %s\nPunti: %u\n", payloadRank[0], payloadRank + 1, payloadRank[1 + DIM_NICK]);
+	printf("Dimensione della stringa serializzata: %llu", sizeof(*payloadRank));
+	// printf("\tprimo record della classifica:\nTema: %u\nGiocatore: %s\nPunti: %u\n", payloadRank[0], payloadRank + 1, payloadRank[1 + DIM_NICK]);
+
+
 
 	// END DEBUG
 

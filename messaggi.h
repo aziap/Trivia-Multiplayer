@@ -3,14 +3,15 @@
 
 #ifndef DEBUG_ON
 #define DEBUG_ON
-#endif 
 #include "debug.h"
+#endif 
 
 #include "costanti.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <arpa/inet.h>
 
 // Tipi dei messaggi inviati dal server
 const msg_t UNEXPECTED_ERR_T = 0;   // Generico per errori inaspettati
@@ -96,10 +97,6 @@ char* pack(msg_t type, msgsize_t len, flag_t flags, char* payload, char* buffer)
 
 // Deserializzo il messaggio ricevuto 
 struct Messaggio* unpack(char *buffer) {
-
-    debug("Sono nella unpack\n");
-
-    debug("Se non leggo questo, non gli è piaciuta la malloc\n");
     // Creo la struttura in cui salvare i campi
     struct Messaggio* m = (struct Messaggio*)malloc(sizeof(struct Messaggio));
 
@@ -125,7 +122,7 @@ struct Messaggio* unpack(char *buffer) {
 
     if(m->msgLen) {
         if ((m->payload = malloc(m->msgLen)) == NULL) {
-            perror("Allocazione della memoria per m->payload fallita");
+            perror("Allocazione della memoria per il payload fallita");
             exit(EXIT_FAILURE);
         }
         memcpy(m->payload, buffer + offset, m->msgLen);
