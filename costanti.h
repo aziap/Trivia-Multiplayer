@@ -11,9 +11,9 @@ typedef uint8_t flag_t;     // Per le variabili che contengono i flag di un mess
 
 #define SERVER_ADDR "127.0.0.1"
 #define DIM_DOMANDA 256
-#define DIM_RISPOSTA 64
+#define DIM_RISPOSTA 64 // TODO: togliere se si include la dimensione nel pacchetto
 #define DIM_NICK 16    // Include il carattere di fine stringa 
-#define DIM_TEMA 64
+#define DIM_TEMA 64     // Caratteri massimi dell'argomento di un tema
 #define NUM_TEMI 2
 #define DIM_BUFFER 1024
 #define MAX_DIM_PAYLOAD (DIM_BUFFER - sizeof(msg_t) - sizeof(flag_t) - sizeof(msgsize_t))

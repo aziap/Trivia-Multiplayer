@@ -18,8 +18,6 @@
 #include <fcntl.h>
 #include "costanti.h"
 
-
-// L'indirizzo del server è definito in costanti.h
 #define MAX_CLIENTS 100
 #define PORT 1919 
 #define MAX_BACKLOG 128 // Numero massimo di connessioni in attesa 
@@ -177,12 +175,12 @@ int main() {
                 
                 // C'è un nuovo messaggio!
 
+                // DEBUG
                 debug("Newline at %d\n", strcspn(buffer, "\n"));
                 
                 buffer[strcspn(buffer, "\n")] = 0;
                 
                 debug("Il client dice: %s\n", buffer);
-                // DEBUG
                 char* str ="Yo";
                 send(sd, str, sizeof(str), 0);
                 // END DEBUG

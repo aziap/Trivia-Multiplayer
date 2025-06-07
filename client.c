@@ -12,8 +12,8 @@
 #include <arpa/inet.h>
 
 int main(int argc, char* argv[]) {
-    if (argc != 2){
-        printf("Numero di argomenti non corretto! Aspettati: 1, ricevuti: %d\n", argc -1);
+    if (argc < 2){
+        printf("Numero di argomenti insufficiente! Attesa la porta in ascolto del server.\n");
         return 0;
     }
     
