@@ -46,7 +46,8 @@ struct RankGiocatore* classificaTema[NUM_TEMI];
 // TODO: aggiornare
 int contatoreRecord = 0;
 
-char tmpNick[DIM_NICK] = {0}; 
+// TODO: togliere?
+// char tmpNick[DIM_NICK] = {0}; 
 
 // NOTA: questa funzione assume che la stringa passata sia corretta secondo i parametri richiesti. 
 //		 I controlli vanno fatti in un'altra funzione.
@@ -256,6 +257,41 @@ bool rimuoviRankGiocatore(char* nick, uint8_t tema) {
 	// decrem contatore
 	--contatoreRecord;
 	return true;
+}
+
+// Formatta la classifica in una stringa di caratteri per poterla inserire in un messaggio
+char* serializzaClassifica(){
+	debug("Controlli per serializzazione\n");
+	int len = contatoreRecord * (DIM_NICK + 2); // 1 byte per il tema + 1 byte per il punteggio 
+	
+	if (len > MAX_DIM_PAYLOAD) {
+		debug("La classifica contiene troppi record per essere inviata\n");
+		return NULL;
+	}
+	
+	char *msgClassifica;
+	if ((msgClassifica = malloc(len)) == NULL) {
+		perror("Allocazione della memoria per serializzare la classifica fallita");
+		return NULL;
+	}
+
+	for(int i = 0; i < NUM_TEMI; i++) {
+		debug("Inizio della serializzazione\n");
+		if (classificaTema[i] == NULL) continue; 
+		struct RankGiocatore *cur = classificaTema[i]; 
+		char* index = msgClassifica;
+		while(cur != NULL) {
+			*index++ = (uint8_t)(i + 1);	// Tema
+			debug("Nome: %s\n", cur->nick);
+			strncpy(index, cur->nick, DIM_NICK);	// Nickname del giocatore
+
+			*index += DIM_DOMANDA;
+			debug("Punti: %u\n", cur->punti);
+			*index++ = cur->punti;	// Punteggio del giocatore
+			cur = cur->next;
+		}
+	}
+	return msgClassifica;
 }
 
 #endif

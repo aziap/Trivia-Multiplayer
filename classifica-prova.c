@@ -54,7 +54,10 @@ int main() {
 	incrementaPunteggio(mockPlayer1->nick, mockPlayer1->punteggioCorrente, mockPlayer1->temaCorrente);
 	incrementaPunteggio(mockPlayer2->nick, mockPlayer2->punteggioCorrente, mockPlayer2->temaCorrente);
 
-	stampaClassifica();
+	// stampaClassifica();
+
+	char* payloadRank = serializzaClassifica();
+	printf("\tprimo record della classifica:\nTema: %u\nGiocatore: %s\nPunti: %u\n", payloadRank[0], payloadRank + 1, payloadRank[1 + DIM_NICK]);
 
 	// END DEBUG
 

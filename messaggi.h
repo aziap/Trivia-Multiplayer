@@ -81,7 +81,7 @@ char* pack(msg_t type, msgsize_t len, flag_t flags, char* payload, char* buffer)
     offset += sizeof(msg_t);
 
     // Inserisco la dimensione del messaggio
-    buffer[offset] = len;
+    buffer[offset] = htons(len);
     offset += sizeof(uint16_t);
 
     // Inserisco i flag
@@ -117,7 +117,7 @@ struct Messaggio* unpack(char *buffer) {
     m->type = buffer[offset];
     offset += sizeof(m->type);
     
-    m->msgLen = buffer[offset];
+    m->msgLen = ntohs(buffer[offset]);
     offset += sizeof(m->msgLen);
 
     m->flags = buffer[offset];
