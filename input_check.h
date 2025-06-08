@@ -3,8 +3,8 @@
 
 #ifndef DEBUG_ON
 #define DEBUG_ON
-#include "debug.h"
 #endif
+#include "debug.h"
 
 #include "costanti.h"
 #include <string.h>
@@ -37,7 +37,8 @@ char* trim(char* str) {
     return str;
 }
 
-
+// Rimuovo gli spazi bianchi da testa e coda del nickname
+//     e controllo che non sia vuoto o troppo lungo
 static inline bool checkNicknameFormat(char* nick){
     if (strlen(trim(nick)) > DIM_NICK - 1) {
         debug("Nickname troppo lungo\n");
@@ -56,7 +57,7 @@ static inline bool checkOpzioneMenu(int opt) {
 }
 
 // Controllo se l'input inserito è un tema valido
-static inline bool checkSceltaTema(int tema) {
+static inline bool checkValoreTema(int tema) {
     return !(tema < 1 || tema > NUM_TEMI);
 }
 

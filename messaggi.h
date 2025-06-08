@@ -16,10 +16,13 @@
 // Tipi dei messaggi inviati dal server
 const msg_t UNEXPECTED_ERR_T = 0;   // Generico per errori inaspettati
 const msg_t MAX_CLI_REACH_T = 1;    // Il numero di utenti massimi è stato raggiunto
-const msg_t THEME_LIST_T = 2;       // Lista dei temi
-const msg_t QUESTION_T = 3;         // Domanda del quiz
-const msg_t RANK_T = 4;             // Classifica
-const msg_t NICK_UNAVAIL_T = 5;     // Nickname già preso (non mando conferme, mando direttamente lista dei temi)
+const msg_t CONNECT_OK_T = 2;       // La connessione è stata accettata
+const msg_t THEME_LIST_T = 3;       // Lista dei temi
+const msg_t QUESTION_T = 4;         // Domanda del quiz
+const msg_t RANK_T = 5;             // Classifica
+const msg_t NICK_UNAVAIL_T = 6;     // Nickname già preso (in caso contratio, 
+                                    //     non mando conferme, mando 
+                                    //     direttamente lista dei temi)
 
 // Tipi dei messaggi inviati dal client
 const msg_t NICK_PROPOSITION_T = 10;
@@ -30,9 +33,9 @@ const msg_t SHOW_SCORE_T = 14;
 
 // Definiscono il range dei tipi validi
 // Il firstServerType sarebbe 0, ma essendo unsigned non ce ne possono essere di minori
+const msg_t lastSrvType = NICK_UNAVAIL_T;
 const msg_t firstCliType = NICK_PROPOSITION_T;
 const msg_t lastCliType = SHOW_SCORE_T;
-const msg_t lastSrvType = NICK_UNAVAIL_T;
 
 
 /*

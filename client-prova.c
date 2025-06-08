@@ -38,7 +38,7 @@ int main() {
 
     // Controllo sul tema
     for (int t = 0; t < 4; t++)
-        printf("Tema %d %s valido\n", t, checkSceltaTema(t) ? 
+        printf("Tema %d %s valido\n", t, checkValoreTema(t) ? 
             "" : "non");
     // Controllo lunghezza risposta
     char r1[DIM_RISPOSTA] = {0};
