@@ -8,7 +8,7 @@ char* trim(char *str) {
     // Comincio dalla fine
     int i = strlen(str) - 1;
     while (i >= 0
-        && (str[i] != ' ' || str[i] != 'n' || str[i] != 0) 
+        && (str[i] != ' ' || str[i] != '\n' || str[i] != 0) 
     ){
         --i;
     }
