@@ -41,31 +41,32 @@ void stampaClassificaClient(char *msgClassifica, msgsize_t len) {
 }
 
 // Elimina gli spazi bianchi in testa e in coda a una stringa e il carriage return
-// bool trim(char *str) {
-//     // Comincio dalla fine
-//     int i = strlen(str + 1);
-//     while (i >= 0
-//         && (str[i] != ' ' || str[i] != 'n' || str[i] != '\0') 
-//     ){
-//         --i;
-//     }
-//     // Stringa vuota, con soli spazi o senza terminatore
-//     if (i == 0 || strlen(str + 1)) return false;
-//     str[i + 1] = '/0';
+char* trim(char *str) {
+    // Comincio dalla fine
+    int i = strlen(str);
+    printf("i inizializzato a %d\n", i);
+    while (i >= 0
+        && (str[i] == ' ' || str[i] == '\n' || str[i] == 0) 
+    ){
+        --i;
+    }
+    str[i + 1] = 0;
 
-//     i = 0;
-//     int j = 0;
+    // Tolgo gli spazi bianchi in coda
+    i = 0;
+    int j = 0;
 
-//     // Cerco il primo carattere valido
-//     while (str[i] == ' ') {
-//         ++i;
-//     }
+    // Cerco il primo carattere valido
+    while (str[i] == ' ') {
+        ++i;
+    }
 
-//     // Shift dei caratteri validi 
-//     while (str[i] != '\0') {
-//         str[j++] = str[i++];
-//     }
-// }
+    // Shift dei caratteri validi 
+    while (str[j] != 0) {
+        str[j++] = str[i++];
+    }
+    return str;
+}
 
 // TODO: spostare in libreria per i controlli sugli input
 // TODO: generalizzare togliendo le stampe in modo da poterlo usare sia lato client che server (magari ritornando un tipo d'errore)
