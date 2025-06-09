@@ -12,8 +12,6 @@
 #include "debug.h"
 #endif
 
-
-
 // Valori di ritorno delle funzioni che gestiscono la logica di gioco.
 //      Dicono al chiamante, in server.c, se procedere con 
 //      il ciclo send - receive, o se chiudere la connessione 
@@ -102,7 +100,7 @@ int gestisciMessaggio(int sd, char* buffer) {
         return DISCONNECT;
     }
 
-    // Il giocatore ha scelto un nickname
+    // scelta di un nickname
     if (m->type == NICK_PROPOSITION_T) {
         // Controllo la validità del formato.
         //      I controlli sono già stati fatti lato client, se il 
@@ -135,11 +133,77 @@ int gestisciMessaggio(int sd, char* buffer) {
         // return DISCONNECT
         // ...
 
-        return OK;
+        // return OK;
+    }
+
+    // Scelta di un tema
+    else if (m->type == THEME_CHOICE_T) {
+        // Controllo se il tema è già stato scelto precedentemente
+        // ...
+
+        // Aggiorno lo stato del giocatore
+        // ...
+
+        // Inserisco un nuovo record nella classifica
+        // ...
+
+        // Prelevo la prima domanda dal domande.txt
+        // ...
+
+        // Preparo il messaggio con la prima domanda nel buffer
+            // Setto il flag FIRST_QST
+            // ...
+
+        // return OK;
+    }
+
+    // Risposta ad una domanda del quiz
+    else if (m->type == ANSWER_T) {
+        // TODO: per gestire questo caso, meglio fare una funzione apposita
+
+        // Controlli di consistenza
+        // ...
+
+        // Aggiorno lo stato del giocatore
+        // ...
+
+        // Se non era l'ultima domanda, prelevo la prossima domanda
+        // ...
+
+        // Altrimenti setto il flag NO_QST
+        // ...
+        
+        // Leggo la risposta in risposte.txt e controllo
+        // ...
+
+        // Preparo il messaggio con esito della risposta 
+        //      e eventualmente prossima domanda
+        // ...
+
+        // return OK;
+    }
+
+    // Richiesta della classifica
+    else if (m->type == SHOW_SCORE_T) {
+        // Serializzo la classifica
+        // ...
+
+        // Impacchetto nel buffer
+        // ...
+
+        // return OK;
+    }
+
+    else if (m->type == ENDQUIZ) {
+        // Dealloca le strutture dati
+        // ...
+        
+        // Rimuovi tutti i record dalla classifica
+        // ...
+
+        // return DISCONNECT;
     }
 }
-
-
 
 
 #endif
