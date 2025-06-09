@@ -1,11 +1,6 @@
-
-// DEBUG
-#ifndef DEBUG_ON
-#define DEBUG_ON
-#endif
-
-#include "debug.h"
-// END DEBUG
+#include "costanti.h"
+#include "messaggi.h"
+#include "server_game_logic.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,24 +11,26 @@
 #include <time.h>
 #include <errno.h>
 #include <fcntl.h>
-#include "costanti.h"
+
+// DEBUG
+#ifndef DEBUG_ON
+#define DEBUG_ON
+#include "debug.h"
+#endif
+// END DEBUG
 
 #define MAX_CLIENTS 100
 #define PORT 1919 
 #define MAX_BACKLOG 128 // Numero massimo di connessioni in attesa 
 
-// TODO: spostare in logica di gioco
-struct Giocatore* giocatori[MAX_CLIENTS];
-
-// posso fare send e recv nel server se mando il contenuto ricevuto nel buffer al game-logic-handler (glh) tramite una funzione che mi ritorna il contenuto del buffer da inviare. Il glh modifica il contenuto del buffer, ma, dopo la send, il server lo azzera
 
 /**
  * read -> recv
- * send -> write (probabilmente il write fd_set non mi serve)
+ * send -> write
 */
 
 
-static inline void disconnettiClient(int index, int *sdArr, int *nextSd) {
+static inline void disconnettiClient(int index, int *sdArr, int *nextSd, fd_set *master) {
     // DEBUG
     int sd = sdArr[index];
     
@@ -41,6 +38,10 @@ static inline void disconnettiClient(int index, int *sdArr, int *nextSd) {
     // Sposto l'ultimo sd nella posizione appena liberata
     //      e decremento il numero di client
     sdArr[index] = sdArr[--(*nextSd)];
+
+    // Rimuovo l'sd dal set master
+    debug("Rimuovo il sd dal master set\n");
+    FD_CLR(sd, master);
 
     // TODO spostare l'ultimo elemento dei client_socket al posto di quello appena eliminato
     // TODO IMPORTANTISSIMO: dire al game logic handler di rimuovere l'entry corrispondente dall'indice socket -> Giocatore  
@@ -70,13 +71,17 @@ int main() {
 
     char buffer[DIM_BUFFER] = {0};
 
+    // Azzero i set
+    FD_ZERO(&master);
+    FD_ZERO(&readfd);
+
     // Creo il socket listener
     if((listener = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
         perror("Creazione del socket del server fallita");
         exit(EXIT_FAILURE);
     }
 
-    // Riutilizza il socket se 
+    // Riutilizza il socket se...?
     // TODO: documentare meglio
     int yes = 1;
     setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
@@ -120,7 +125,7 @@ int main() {
         }
 
 
-        // Controllo se ci sono nuove connessioni
+        // Controllo se ci sono nuove richieste di connessione
         if (FD_ISSET(listener, &readfd)) {
             if ((newfd = accept(listener, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0) {
                 perror("Accept fallito");
@@ -128,6 +133,8 @@ int main() {
                 exit(EXIT_FAILURE);
             }
             debug("Nuova connessione stabilita. Socket: %d\n", newfd);
+
+            // TODO: gestire il caso di massimo numero di giocatori raggiunto
         }
 
 
@@ -159,7 +166,7 @@ int main() {
                     // Client disconnesso
                     debug("Client disconnesso, socket: %d\n", sd);
                     // Chiudo il socket e decremento il numero di giocatori
-                    disconnettiClient(i, client_socket, &numclient);
+                    disconnettiClient(i, client_socket, &numclient, &master);
                     continue;
                 }
                 if (numReceived < 0 
@@ -188,5 +195,6 @@ int main() {
         } // END for(;;) - handling ready client sockets 
     } // END while() - main loop
 
+    closeAll(listener, client_socket, &numclient);
     return 0;
 }

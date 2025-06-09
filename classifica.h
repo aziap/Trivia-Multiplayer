@@ -15,21 +15,6 @@
 
 // END DEBUG
 
-
-// Contiene lo stato corrente di un giocatore
-// @param nick: nickname con cui il giocatore si è registrato.
-// @param temaCorrente: id del tema del quiz che il giocatore sta giocando attualmente.
-// 		0 se non ne sta giocando nessuno 
-// @param prossimaDomanda: id della prossima domanda da inviare al giocatore. 
-// @param statoTemi: 1 se il giocatore ha completato un tema, 0 altrimenti.
-struct Giocatore {
-	char nick[DIM_NICK];
-	uint8_t temaCorrente;
-	uint8_t punteggioCorrente;
-	uint8_t prossimaDomanda;
-	bool statoTemi[NUM_TEMI];
-};
-
 // Elemento della classifica. Il tema è implicitamente indicato dall'indice dell'array "classificaTema"
 // @param nick
 // @param punti
@@ -43,32 +28,7 @@ struct RankGiocatore {
 // Array che, per ogni tema, contiene la testa della lista che implementa la classifica 
 struct RankGiocatore* classificaTema[NUM_TEMI];
 
-// TODO: aggiornare
 int contatoreRecord = 0;
-
-// TODO: togliere?
-// char tmpNick[DIM_NICK] = {0}; 
-
-// NOTA: questa funzione assume che la stringa passata sia corretta secondo i parametri richiesti. 
-//		 I controlli vanno fatti in un'altra funzione.
-// TODO: deallocare la memoria quando il giocatore si disconnette
-// TODO (ma da un'altra parte): chiudere il socket se la funzione fallisce
-struct Giocatore* registraGiocatore(char* nick) {
-	// TODO: inserire riferimento nella lista dei giocatori
-	struct Giocatore* ptr = malloc(sizeof(struct Giocatore));
-	if (ptr == NULL) {
-		perror("errore in registraGiocatore()\nmalloc(): ");
-		return NULL;
-	}
-	strcpy(ptr->nick, nick);
-	ptr->temaCorrente = 0;
-	ptr->punteggioCorrente = 0;
-	ptr->prossimaDomanda = 0;
-	for (int i = 0 ; i < NUM_TEMI ; i++) {
-		ptr->statoTemi[i] = false;
-	}
-	return ptr;
-}
 
 
 // ********************************

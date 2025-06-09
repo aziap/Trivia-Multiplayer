@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
+#include <stdbool.h>
 
 // Tipi dei messaggi inviati dal server
 const msg_t UNEXPECTED_ERR_T = 0;   // Generico per errori inaspettati
@@ -68,14 +69,23 @@ struct Messaggio {
     char* payload;  // Can be NULL
 };
 
-// Serializzo il messaggio da inviare
-char* pack(msg_t type, msgsize_t len, flag_t flags, char* payload, char* buffer) {
+// Serializzo il messaggio da inviare e lo inserisco nel buffer passato
+//      per rifereimento
+// @param type: valore campo tipo del messaggio
+// @param len: numero di byte del payload
+// @param flags: eventuali flag da inserire nel campo flag del messaggio
+// @param payload: dati da inviare
+// @param buffer: dove voglio che il messaggio finale venga inserito 
+// @returns bool: true se il messaggio è stato correttamente inserito 
+//      nel buffer, false altrimenti. Se restituisce false, il buffer non è
+//      stato modificato 
+bool pack(msg_t type, msgsize_t len, flag_t flags, char* payload, char* buffer) {
     if ((type > lastSrvType && type < firstCliType)
     || type > lastCliType)
     {
         printf("Errore: tipo del messaggio non valido: %u\n", type);
         // Lascio la gestione al chiamante
-        return NULL;
+        return false;
     }
 
     int offset = 0;
@@ -95,7 +105,7 @@ char* pack(msg_t type, msgsize_t len, flag_t flags, char* payload, char* buffer)
     strncpy(buffer + offset, payload, len);
     buffer[offset + len] = '\0';
 
-    return buffer;  
+    return true;  
 }
 
 // Deserializzo il messaggio ricevuto 
@@ -105,7 +115,7 @@ struct Messaggio* unpack(char *buffer) {
 
     if (m == NULL) {
         perror("Allocazione della memoria per il messaggio fallita");
-        exit(EXIT_FAILURE);
+        return NULL;
     }
 
     // Azzero tutti i campi
