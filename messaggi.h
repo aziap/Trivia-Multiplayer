@@ -69,6 +69,8 @@ struct Messaggio {
     char* payload;  // Can be NULL
 };
 
+bool pack(msg_t type, msgsize_t len, flag_t flags, char* payload, char* buffer);
+
 // Serializzo il messaggio da inviare e lo inserisco nel buffer passato
 //      per rifereimento
 // @param type: valore campo tipo del messaggio
