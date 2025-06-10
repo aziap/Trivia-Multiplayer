@@ -38,6 +38,10 @@ const msg_t lastSrvType = NICK_UNAVAIL_T;
 const msg_t firstCliType = NICK_PROPOSITION_T;
 const msg_t lastCliType = SHOW_SCORE_T;
 
+// Flag
+const flag_t FIRST_QST = 0b0001;    // Prima domanda
+const flag_t PREV_ANS_CORRECT = 0b0010;     // La risposta precedente era corretta (sbagliata se non settato)
+const flag_t NO_QST = 0b0100;   // Il messaggio non contiene domande, solo l'esito dell'ultima risposta
 
 /*
 Struttura generica di un messaggio:

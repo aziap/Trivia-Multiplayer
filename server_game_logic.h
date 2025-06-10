@@ -96,6 +96,14 @@ bool checkNickPreso(char* nick) {
     return i < numGiocatori;
 }
 
+char* prelevaDomanda(uint8_t tema, uint8_t numero) {
+    // fopen
+    // Ogni domanda è scritta su una linea
+    
+    // fgets
+    // 
+}
+
 
 int gestisciMessaggio(int sd, char* buffer) {
     struct Messaggio* m = unpack(buffer); 
@@ -187,20 +195,41 @@ int gestisciMessaggio(int sd, char* buffer) {
     else if (m->type == THEME_CHOICE_T) {
         // Controllo se il tema è già stato scelto precedentemente
         // ...
+        uint8_t t = atoi(m->payload);
+        free(m);
+        if (!checkValoreTema(t)) {
+            printf("Numero tema ricevuto non valido: %u\n", t);
+            return DISCONNECT;
+        }
+
+        struct Giocatore* g = getGiocatore(sd);
+        
+        if (checkTemaGiaScelto(t, g->statoTemi)) {
+            printf("%s ha già partecipato al quiz del tema %u\n", g->nick, t);
+            return DISCONNECT;
+        }
+
+        if(g->temaCorrente != 0) {
+            printf("%s sta già partecipando ad un altro quiz: %u\n", g->temaCorrente);
+            return DISCONNECT;
+        }
 
         // Aggiorno lo stato del giocatore
-        // ...
+        g->temaCorrente = t;
 
         // Inserisco un nuovo record nella classifica
-        // ...
+        if (!inserisciInClassifica(g->nick, t)) {
+            // Errore nell'allocazione di memoria per il nuovo record
+            return ERROR;
+        }
 
-        // Prelevo la prima domanda dal domande.txt
-        // ...
+        debug("Prelevo la prima domanda del tema %u\n", t);
+        // Prelevo la prima domanda da domande.txt
+        
 
         // Preparo il messaggio con la prima domanda nel buffer
             // Setto il flag FIRST_QST
             // ...
-		// free(m);
         // return OK;
     }
 
@@ -214,7 +243,7 @@ int gestisciMessaggio(int sd, char* buffer) {
         // Aggiorno lo stato del giocatore
         // ...
 
-        // Se non era l'ultima domanda, prelevo la prossima domanda
+        // Se non era l'ultima domanda, prelevo la prossima
         // ...
 
         // Altrimenti setto il flag NO_QST

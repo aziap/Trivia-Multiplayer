@@ -15,6 +15,7 @@ typedef uint8_t flag_t;     // Per le variabili che contengono i flag di un mess
 #define DIM_NICK 16    // Include il carattere di fine stringa 
 #define DIM_TEMA 64     // Caratteri massimi dell'argomento di un tema
 #define NUM_TEMI 2
+#define NUM_DOMANDE 5
 #define DIM_BUFFER 1024
 #define MAX_DIM_PAYLOAD (DIM_BUFFER - sizeof(msg_t) - sizeof(flag_t) - sizeof(msgsize_t))
 #define MAX_CLIENTS 100

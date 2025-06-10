@@ -1,0 +1,10 @@
+1~1~Qual è l'animale terrestre più veloce al mondo?
+1~2~Come si chiama il verso dell'elefante?
+1~3~Quanti stomaci hanno le mucche? 
+1~4~Quale insetto può sollevare fino a 500 volte il proprio peso?
+1~5~Quante vite hanno i gatti?
+2~1~Qual è il nome del celebre pagliaccio nel romanzo "It"?
+2~2~Come viene chiamato il libro quello di Lovecraft dai hai capito?
+2~3~Come si chiama la più piccola delle sorelle protagoniste in "Piccole Donne"?
+2~4~Domanda filler 2-4?
+2~5~Domanda filler 2-5?

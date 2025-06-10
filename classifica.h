@@ -66,7 +66,7 @@ struct RankGiocatore* estraiGiocatore( struct RankGiocatore** head, char* nick )
 }
 
 
-// 	Inserimento di un punteggio
+// 	Inserimento di un giocatore in una classifica
 bool inserisciInClassifica(char* nick, uint8_t tema) {
 	if(tema > NUM_TEMI || tema == 0) {
 		printf("Errore nell'inserimento del giocatore %s in classifica. Id del tema non valido: %u\n", nick, tema);
@@ -114,7 +114,6 @@ bool inserisciInClassifica(char* nick, uint8_t tema) {
 
 
 bool incrementaPunteggio(char* nick, uint8_t nuovoPunteggio, uint8_t tema) {
-
 	struct RankGiocatore** head = &classificaTema[tema - 1]; 
 	if(*head == NULL) {
 		printf("Fatal error: la classifica del tema %u non contiene giocatori\n", tema);
@@ -200,7 +199,7 @@ void stampaClassifica(){
 	}	
 }
 
-// Elimina 
+// Elimina il record di un giocatore da una classifica
 bool rimuoviRankGiocatore(char* nick, uint8_t tema) {
 	// controllo sul numero del tema
 	if ( tema > NUM_TEMI ) {
