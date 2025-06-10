@@ -19,7 +19,6 @@
 #endif
 // END DEBUG
 
-#define MAX_CLIENTS 100
 #define PORT 1919 
 #define MAX_BACKLOG 128 // Numero massimo di connessioni in attesa 
 

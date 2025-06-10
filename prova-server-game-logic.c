@@ -1,7 +1,12 @@
 #include "server_game_logic.h"
 #include "messaggi.h" 
 
-char* buffer[DIM_BUFFER] = {0};
+#ifndef DEBUG_ON 
+#define DEBUG_ON 1
+#endif
+#include "debug.h"
+
+char buffer[DIM_BUFFER] = {0};
 
 void stampaEsito(int e) {
     printf("esito gestione messaggio: %s\n", 
@@ -12,17 +17,14 @@ void stampaEsito(int e) {
 
 int main() {
     // Testo la registrazione di un giocatore
-    char nickProva[2][50] = {0};
-    nickProva[0] = "nick valido";
-    nickProva[1] = "nickname decisamente troppo lungo";
-
-    if(!pack(NICK_PROPOSITION_T, 50, 0, nickProva[0]), buffer) {
+    char nickProva[][50] = {"nick valido", "nickname decisamente troppo lungo"};
+	
+    if(!pack(NICK_PROPOSITION_T, 50, 0, nickProva[0], buffer)) {
         printf("manco va la pack()...\n");
         return 0;
     }
 
     stampaEsito( gestisciMessaggio(1, buffer) );
-
 
 
     return 0;

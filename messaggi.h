@@ -2,9 +2,9 @@
 #define MESSAGGI_H
 
 #ifndef DEBUG_ON
-#define DEBUG_ON
-#include "debug.h"
+#define DEBUG_ON 1
 #endif 
+#include "debug.h"
 
 #include "costanti.h"
 #include <stdint.h>
@@ -90,6 +90,9 @@ bool pack(msg_t type, msgsize_t len, flag_t flags, char* payload, char* buffer) 
         return false;
     }
 
+	debug("parametri inseriti: tipo: %u, len: %d, flag: %u, payload: %s\n", 
+		type, len, flags, payload);
+
     int offset = 0;
     
     // Inserisco il tippo
@@ -97,14 +100,20 @@ bool pack(msg_t type, msgsize_t len, flag_t flags, char* payload, char* buffer) 
     offset += sizeof(msg_t);
 
     // Inserisco la dimensione del messaggio
-    buffer[offset] = htons(len);
+    uint16_t netlen = htons(len); 
+    memcpy(buffer + offset, &netlen, sizeof(uint16_t));
+    debug("len in network byte order: %d\n", htons(len));
+    debug("campo len del messaggio, 1° byte: %u, 2°byte: %u\n",
+    	(unsigned char)buffer[offset], (unsigned char)buffer[offset+1]);
     offset += sizeof(uint16_t);
 
     // Inserisco i flag
     buffer[offset] = flags;
     offset += sizeof(flag_t);
 
+	// Copio il payload
     strncpy(buffer + offset, payload, len);
+    debug("Primo carattere del payload: %c\n", buffer[offset]);
     buffer[offset + len] = '\0';
 
     return true;  
@@ -129,7 +138,9 @@ struct Messaggio* unpack(char *buffer) {
     m->type = buffer[offset];
     offset += sizeof(m->type);
     
-    m->msgLen = ntohs(buffer[offset]);
+    uint16_t netlen; 
+    memcpy(&netlen, buffer + offset, sizeof(uint16_t));
+    m->msgLen = ntohs(netlen);
     offset += sizeof(m->msgLen);
 
     m->flags = buffer[offset];
@@ -145,6 +156,8 @@ struct Messaggio* unpack(char *buffer) {
 
     // Ho salvato le informazioni del messaggio, posso svuotare il buffer
     memset(buffer, 0, DIM_BUFFER);
+    debug("in unpack()\ncampi del messaggio:\n- tipo: %u\n- flag: %u\n- len: %d\n- payload: %s\n",
+    m->type, m->flags, m->msgLen, m->payload); 
     return m;
 }
 

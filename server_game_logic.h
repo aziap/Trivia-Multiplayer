@@ -8,9 +8,9 @@
 
 
 #ifndef DEBUG_ON
-#define DEBUG_ON
-#include "debug.h"
+#define DEBUG_ON 1
 #endif
+#include "debug.h"
 
 // Valori di ritorno delle funzioni che gestiscono la logica di gioco.
 //      Dicono al chiamante, in server.c, se procedere con 
@@ -82,15 +82,17 @@ struct Giocatore* registraGiocatore(char* nick, int sd) {
 // Controllo se esiste un giocatore registrato con un certo nickname
 // @returns true se esiste, false altrimenti
 bool checkNickPreso(char* nick) {
+    // è il primo giocatore
+    if (!numGiocatori) return false;
     int i = 0;
-    while (i <= numGiocatori && strcmp(nick, numGiocatori[i]->nick) != 0) {
+    while (i <= numGiocatori && strcmp(nick, giocatori[i]->nick) != 0) {
         ++i;
     }
     return i <= numGiocatori;
 }
 
-int gestisciMessaggio(int sd, char* buffer) {
 
+int gestisciMessaggio(int sd, char* buffer) {
     struct Messaggio* m = unpack(buffer); 
 
     // I controlli devono essere fatti dal chiamante, 
@@ -100,30 +102,48 @@ int gestisciMessaggio(int sd, char* buffer) {
         return DISCONNECT;
     }
 
+	    debug("in gestisciMessaggio()\ncampi del messaggio:\n- tipo: %u\n- flag: %u\n- len: %d\n- payload: %s\n",
+    m->type, m->flags, m->msgLen, m->payload); 
+    
     // scelta di un nickname
     if (m->type == NICK_PROPOSITION_T) {
+    	debug("Il giocatore ha scelto un nickname: %s\n", m->payload);
+    
         // Controllo la validità del formato.
         //      I controlli sono già stati fatti lato client, se il 
         //      formato non è valido, chiudo la connessione con il giocatore
-        char nick[strlen(m->payload) + 1] = {0};
+        char nick[strlen(m->payload) + 1];
+        debug("sto per copiare il payload\nDimensione dell'array nick[]: %d\n", 
+        	sizeof(nick));
+    	int stringLen = strlen(m->payload);
+    	debug("la strlen è andata, con risultato: %d\n", stringLen);
+        strncpy(nick, m->payload, strlen(m->payload) + 1);
+        debug("la strncpy è andata\n");
         if (!checkNicknameFormat(nick)) {
             debug("Errore in gestisciMessaggio(): il formato del nick non è valido: %s\n", 
                 nick);
+            free(m);
             return DISCONNECT;
         }
+        debug("Il check è andato bene\n");
 
         // Controllo se esiste un giocatore con quel nickname
         if (checkNickPreso(nick)) {
+	        debug("Il nick era già preso\n");
             // Preparo il messaggio di risposta nel buffer
             if (!pack(NICK_UNAVAIL_T, 0, 0, "", buffer)) {
                  return ERROR;
             }
+            free(m);
             // Comunico al chiamante che il buffer contiene un messaggio da inviare
             return OK;
         }
+    	
+    	debug("Il nick è disponibile\n");    
         
         // Registro il giocatore
         if (registraGiocatore(nick, sd) == NULL) {
+        	free(m);
             return DISCONNECT;
         }
         
@@ -133,7 +153,7 @@ int gestisciMessaggio(int sd, char* buffer) {
         // return DISCONNECT
         // ...
 
-        // return OK;
+        return OK;
     }
 
     // Scelta di un tema
@@ -153,7 +173,7 @@ int gestisciMessaggio(int sd, char* buffer) {
         // Preparo il messaggio con la prima domanda nel buffer
             // Setto il flag FIRST_QST
             // ...
-
+		// free(m);
         // return OK;
     }
 
@@ -179,7 +199,7 @@ int gestisciMessaggio(int sd, char* buffer) {
         // Preparo il messaggio con esito della risposta 
         //      e eventualmente prossima domanda
         // ...
-
+		// free(m);
         // return OK;
     }
 
@@ -190,19 +210,21 @@ int gestisciMessaggio(int sd, char* buffer) {
 
         // Impacchetto nel buffer
         // ...
-
+		// free(m);
         // return OK;
     }
 
-    else if (m->type == ENDQUIZ) {
+    else if (m->type == ENDQUIZ_T) {
         // Dealloca le strutture dati
         // ...
         
         // Rimuovi tutti i record dalla classifica
         // ...
-
+		// free(m);
         // return DISCONNECT;
     }
+    free(m);
+    return ERROR;
 }
 
 

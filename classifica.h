@@ -10,7 +10,9 @@
 #include "costanti.h"
 
 // DEBUG
-
+#ifndef DEBUG_ON
+#define DEBUG_ON 1
+#endif
 #include "debug.h"
 
 // END DEBUG

@@ -17,6 +17,7 @@ typedef uint8_t flag_t;     // Per le variabili che contengono i flag di un mess
 #define NUM_TEMI 2
 #define DIM_BUFFER 1024
 #define MAX_DIM_PAYLOAD (DIM_BUFFER - sizeof(msg_t) - sizeof(flag_t) - sizeof(msgsize_t))
+#define MAX_CLIENTS 100
 #define SEP '~';    // Separatore
 
 // Costatni usate solo lato client
