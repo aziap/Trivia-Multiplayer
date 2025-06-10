@@ -6,6 +6,7 @@
 #include "input_check.h"
 #include "messaggi.h"
 
+#include <stdio.h>
 
 #ifndef DEBUG_ON
 #define DEBUG_ON 1
@@ -16,8 +17,8 @@
 //      Dicono al chiamante, in server.c, se procedere con 
 //      il ciclo send - receive, o se chiudere la connessione 
 //      con il client corrispondente al socket esaminato
-#define ERROR -1        // Errore critico 
-#define DISCONNECT 0    // L'utente deve essere disconnesso
+#define ERROR -1        // Errore critico: lascio la gestione al chiamante
+#define DISCONNECT 0    // Dico al chiamante di chiudere la connessione con l'utente
 #define OK 1            // Il buffer contiene un messaggio da inviare
 
 // Contiene lo stato corrente di un giocatore
@@ -71,6 +72,10 @@ struct Giocatore* registraGiocatore(char* nick, int sd) {
 	g->temaCorrente = 0;
 	g->punteggioCorrente = 0;
 	g->prossimaDomanda = 0;
+
+    debug("Parametri del giocatore:\n nick %s, socket %d, tema %u, punti %u, prossima domanda: %u\n"
+        g->nick, g->sd, g->temaCorrente, g->punteggioCorrente, g->prossimaDomanda);
+
 	for (int i = 0 ; i < NUM_TEMI ; i++) {
 		g->statoTemi[i] = false;
 	}
@@ -112,29 +117,26 @@ int gestisciMessaggio(int sd, char* buffer) {
         // Controllo la validità del formato.
         //      I controlli sono già stati fatti lato client, se il 
         //      formato non è valido, chiudo la connessione con il giocatore
-        char nick[strlen(m->payload) + 1];
-        debug("sto per copiare il payload\nDimensione dell'array nick[]: %d\n", 
-        	sizeof(nick));
-    	int stringLen = strlen(m->payload);
-    	debug("la strlen è andata, con risultato: %d\n", stringLen);
-        strncpy(nick, m->payload, strlen(m->payload) + 1);
-        debug("la strncpy è andata\n");
-        if (!checkNicknameFormat(nick)) {
+        if (!checkNicknameFormat(m->payload)) {
             debug("Errore in gestisciMessaggio(): il formato del nick non è valido: %s\n", 
-                nick);
+                m->payload);
             free(m);
             return DISCONNECT;
         }
-        debug("Il check è andato bene\n");
+
+        char nick[DIM_NICK] = {0};
+        strncpy(nick, m->payload, DIM_NICK);
+
+        // Il messaggio non mi serve più, posso deallocare la memoria
+        free(m);
 
         // Controllo se esiste un giocatore con quel nickname
         if (checkNickPreso(nick)) {
 	        debug("Il nick era già preso\n");
             // Preparo il messaggio di risposta nel buffer
             if (!pack(NICK_UNAVAIL_T, 0, 0, "", buffer)) {
-                 return ERROR;
+                return ERROR;
             }
-            free(m);
             // Comunico al chiamante che il buffer contiene un messaggio da inviare
             return OK;
         }
@@ -143,17 +145,37 @@ int gestisciMessaggio(int sd, char* buffer) {
         
         // Registro il giocatore
         if (registraGiocatore(nick, sd) == NULL) {
-        	free(m);
             return DISCONNECT;
         }
+
+        FILE* temi; 
+        if (fopen("./temi.txt","r") == NULL) {
+            perror("Errore nell'apertura di temi.txt");
+            return ERROR;
+        }
+        // Copio la lista dei temi in un buffer temporaneo
+        char listaTemi[DIM_TEMA * NUM_TEMI];
+        size_t nread = fread(listaTemi, sizeof(char), DIM_TEMA * NUM_TEMI, temi);
+
+        // Se non ho letto tutto il file o se c'è stato un problema nella lettura, restituisco il codice di errore
+        if (ferror(temi) != 0) {
+            perror("Errore nella lettura di temi.txt");
+            close(temi);
+            return ERROR;
+        }
         
+        if (feof(temi) == 0) {
+            printf("Errore in gestisciMessaggio(): lo spazio allocato per la lettura dei temi è insufficiente\n");
+            close(temi);
+            return ERROR;
+        }
+        // La lettura ha avuto successo
+        close(temi);
+        
+        listaTemi[nread] = 0;
 
-        // Copio la lista dei temi nel buffer
-        // Eventualmente se ci sono problemi 
-        // return DISCONNECT
-        // ...
-
-        return OK;
+        debug("lista dei temi: %s\n", listaTemi);
+        return pack(THEME_LIST_T, nread, 0, listaTemi, buffer) ? OK : ERROR;
     }
 
     // Scelta di un tema

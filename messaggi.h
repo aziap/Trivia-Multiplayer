@@ -69,8 +69,6 @@ struct Messaggio {
     char* payload;  // Can be NULL
 };
 
-bool pack(msg_t type, msgsize_t len, flag_t flags, char* payload, char* buffer);
-
 // Serializzo il messaggio da inviare e lo inserisco nel buffer passato
 //      per rifereimento
 // @param type: valore campo tipo del messaggio
@@ -154,7 +152,7 @@ struct Messaggio* unpack(char *buffer) {
         memcpy(m->payload, buffer + offset, m->msgLen);
     }
 
-    // Ho salvato le informazioni del messaggio, posso svuotare il buffer
+    // Ho salvato le informazioni del messaggio, posso pulire il buffer
     memset(buffer, 0, DIM_BUFFER);
     debug("in unpack()\ncampi del messaggio:\n- tipo: %u\n- flag: %u\n- len: %d\n- payload: %s\n",
     m->type, m->flags, m->msgLen, m->payload); 
