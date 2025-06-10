@@ -73,7 +73,7 @@ struct Giocatore* registraGiocatore(char* nick, int sd) {
 	g->punteggioCorrente = 0;
 	g->prossimaDomanda = 0;
 
-    debug("Parametri del giocatore:\n nick %s, socket %d, tema %u, punti %u, prossima domanda: %u\n"
+    debug("Parametri del giocatore:\n nick %s, socket %d, tema %u, punti %u, prossima domanda: %u\n",
         g->nick, g->sd, g->temaCorrente, g->punteggioCorrente, g->prossimaDomanda);
 
 	for (int i = 0 ; i < NUM_TEMI ; i++) {
@@ -90,10 +90,10 @@ bool checkNickPreso(char* nick) {
     // è il primo giocatore
     if (!numGiocatori) return false;
     int i = 0;
-    while (i <= numGiocatori && strcmp(nick, giocatori[i]->nick) != 0) {
+    while (i < numGiocatori && strcmp(nick, giocatori[i]->nick) != 0) {
         ++i;
     }
-    return i <= numGiocatori;
+    return i < numGiocatori;
 }
 
 
@@ -147,12 +147,17 @@ int gestisciMessaggio(int sd, char* buffer) {
         if (registraGiocatore(nick, sd) == NULL) {
             return DISCONNECT;
         }
+	
+		debug("in gestisciMessaggio(), sto per leggere temi.txt\n");
 
         FILE* temi; 
-        if (fopen("./temi.txt","r") == NULL) {
+        if ((temi = fopen("./temi.txt","r")) == NULL) {
             perror("Errore nell'apertura di temi.txt");
             return ERROR;
         }
+        
+        debug("Apertura del file riuscita\n");
+        
         // Copio la lista dei temi in un buffer temporaneo
         char listaTemi[DIM_TEMA * NUM_TEMI];
         size_t nread = fread(listaTemi, sizeof(char), DIM_TEMA * NUM_TEMI, temi);
@@ -160,17 +165,17 @@ int gestisciMessaggio(int sd, char* buffer) {
         // Se non ho letto tutto il file o se c'è stato un problema nella lettura, restituisco il codice di errore
         if (ferror(temi) != 0) {
             perror("Errore nella lettura di temi.txt");
-            close(temi);
+            fclose(temi);
             return ERROR;
         }
         
         if (feof(temi) == 0) {
             printf("Errore in gestisciMessaggio(): lo spazio allocato per la lettura dei temi è insufficiente\n");
-            close(temi);
+            fclose(temi);
             return ERROR;
         }
         // La lettura ha avuto successo
-        close(temi);
+        fclose(temi);
         
         listaTemi[nread] = 0;
 

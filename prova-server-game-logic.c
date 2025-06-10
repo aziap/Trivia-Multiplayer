@@ -25,16 +25,16 @@ int main() {
     }
 
     stampaEsito( gestisciMessaggio(1, buffer) );
-
+/*
     printf("Provo a registrare di nuovo il giocatore\n");
 
-    pack(NICK_PROPOSITION_T, 50, 0, nickProva[0], buffer)
+    pack(NICK_PROPOSITION_T, 50, 0, nickProva[0], buffer);
 
     stampaEsito( gestisciMessaggio(2, buffer) );
-
+*/
     printf("provo con un altro nick\n");
 
-    pack(NICK_PROPOSITION_T, 50, 0, "genoveffa", buffer)
+    pack(NICK_PROPOSITION_T, 50, 0, "genoveffa", buffer);
 
     stampaEsito( gestisciMessaggio(3, buffer) );
 
