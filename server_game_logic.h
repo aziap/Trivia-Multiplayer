@@ -96,12 +96,36 @@ bool checkNickPreso(char* nick) {
     return i < numGiocatori;
 }
 
-char* prelevaDomanda(uint8_t tema, uint8_t numero) {
-    // fopen
-    // Ogni domanda è scritta su una linea
-    
-    // fgets
-    // 
+// Preleva una riga indicizzata da "tema" e "numero" dal file "fileTarget"
+// Usata per prelevare domande e risposte dai rispettivi file
+static inline char* prelevaRiga(uint8_t tema, uint8_t numero, int len, char* fileTarget, ) {
+    if (tema > 9 || numero > 9) {
+        // Sappiamo che "tema" e "numero" sono interi a una cifra, 
+        //      ma è meglio proteggersi nel caso di un input errato
+        //      che altrimenti verrebbe gestito in maniera errata
+        printf("Errore in prelevaRiga(): tema e numero devono avere una sola cifra\n");
+        return NULL;
+    }
+    FILE* target;
+    if ((target = fopen(fileTarget, "r")) == NULL) {
+        return NULL;
+    }
+    // Creo una stringa con "<tema><separatore><numero>"
+    int daComparare = 3;
+    char indiceRiga[daComparare];
+    indiceRiga[0] = '0' + tema;
+    indiceRiga[1] = SEP; 
+    indiceRiga[3] = '0' + numero;
+    char* linea;
+    while (fgets(linea, len, target) != NULL && strncmp(linea, indiceRiga, daComparare) != 0) {
+        debug("Riga letta: %s\n", linea);
+    }
+    fclose(target);
+    if (linea == NULL) {
+        printf("Errore in prelevaRiga(): indice %s non trovato\n", indiceRiga);
+        return NULL;
+    }
+    return linea;
 }
 
 
