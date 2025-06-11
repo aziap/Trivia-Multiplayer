@@ -1,0 +1,6 @@
+al momento il free della memoria delle strutture giocatore, rank e rimozione con shift dall'array giocatori NON VIENE FATTO in gestisciMessaggio() in server_game_logic.h, prima di "return DISCONNECT"
+-> 2 opzioni:
+1. fare una funzione apposita sempre in server_game_logic.h per il free di tutta la memoria e rimozione da giocatori[] che viene chiamata dal server quando riceve il codice DISCONNECT da gestisciMessaggio()
+2. fare la stessa funzione ma chiamarla ogni volta prima del return DISCONNECT.
+
+meglio la (1) perché la 2 è più propensa a errori (come a vedere che mi dimentico prima di un disconnect)

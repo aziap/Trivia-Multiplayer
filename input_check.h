@@ -10,23 +10,26 @@
 #include <string.h>
 #include <stdbool.h>
 
-// controllo che il nickname non sia vuoto o troppo lungo
-static inline bool checkNicknameFormat(char* nick){
-	// Controllo che ci sia almeno un carattere non spazio
-	int i = 0;
-	while (i <= strlen(nick)
-		&& ( nick[i] == ' ' || nick[i] == '\n' || nick[i] == '\t' || nick[i] == '\0')
+static inline checkStringaNonVuota(char* str) {
+    int i = 0;
+	while (i <= strlen(str)
+		&& ( str[i] == ' ' || str[i] == '\n' || str[i] == '\t' || str[i] == '\0')
 	) {
 		++i;
 	}
-	if (i > strlen(nick)) return false; 
-	
-    if (strlen(nick) > DIM_NICK - 1) {
-        debug("Nickname troppo lungo\n");
+	return i < strlen(str); 
+}
+
+// controllo che il nickname non sia vuoto o troppo lungo
+static inline bool checkNicknameFormat(char* nick){
+	// Controllo che ci sia almeno un carattere non spazio
+    if (!checkStringaNonVuota(nick)) {
+        debug("nessun carattere valido trovato\n");
         return false;
     }
-    if (strlen(nick) == 0) {
-        debug("Nessun carattere valido trovato\n");
+
+    if (strlen(nick) > DIM_NICK - 1) {
+        debug("Nickname troppo lungo\n");
         return false;
     }
     return true;

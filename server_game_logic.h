@@ -25,14 +25,14 @@
 // @param nick: nickname con cui il giocatore si è registrato.
 // @param temaCorrente: id del tema del quiz che il giocatore sta giocando attualmente.
 // 		0 se non ne sta giocando nessuno 
-// @param prossimaDomanda: id della prossima domanda da inviare al giocatore. 
+// @param domandaCorrente: id dell'ultima domanda inviata al giocatore. 
 // @param statoTemi: 1 se il giocatore ha completato un tema, 0 altrimenti.
 struct Giocatore {
     int sd;     // Socket descriptor associato al giocatore
 	char nick[DIM_NICK];
 	uint8_t temaCorrente;
 	uint8_t punteggioCorrente;
-	uint8_t prossimaDomanda;
+	uint8_t domandaCorrente;
 	bool statoTemi[NUM_TEMI];
 };
 
@@ -42,12 +42,12 @@ struct Giocatore* giocatori[MAX_CLIENTS];
 
 // Dato il socket descriptor, restituisce l'indice del giocatore
 //      nell'array giocatori[]
-static inline int getGiocatore(int sd) {
+static inline struct Giocatore* getGiocatore(int sd) {
     int index = 0;
     while (index <= numGiocatori && index != giocatori[index]->sd) {
         ++index;
     }
-    return index <= numGiocatori ? index : -1;
+    return index <= numGiocatori ? giocatori[index] : NULL;
 }
 
 
@@ -71,10 +71,10 @@ struct Giocatore* registraGiocatore(char* nick, int sd) {
     g->sd = sd;
 	g->temaCorrente = 0;
 	g->punteggioCorrente = 0;
-	g->prossimaDomanda = 0;
+	g->domandaCorrente = 0;
 
-    debug("Parametri del giocatore:\n nick %s, socket %d, tema %u, punti %u, prossima domanda: %u\n",
-        g->nick, g->sd, g->temaCorrente, g->punteggioCorrente, g->prossimaDomanda);
+    debug("Parametri del giocatore:\n nick %s, socket %d, tema %u, punti %u, domanda corrente: %u\n",
+        g->nick, g->sd, g->temaCorrente, g->punteggioCorrente, g->domandaCorrente);
 
 	for (int i = 0 ; i < NUM_TEMI ; i++) {
 		g->statoTemi[i] = false;
@@ -83,6 +83,7 @@ struct Giocatore* registraGiocatore(char* nick, int sd) {
     giocatori[numGiocatori++] = g;
 	return g;
 }
+
 
 // Controllo se esiste un giocatore registrato con un certo nickname
 // @returns true se esiste, false altrimenti
@@ -95,6 +96,7 @@ bool checkNickPreso(char* nick) {
     }
     return i < numGiocatori;
 }
+
 
 // Preleva una riga indicizzata da "tema" e "numero" dal file "fileTarget"
 // Usata per prelevare domande e risposte dai rispettivi file
@@ -128,6 +130,42 @@ static inline bool prelevaRiga(uint8_t tema, uint8_t numero, char* bufLinea, int
 }
 
 
+// Controlla il contenuto di una risposta, aggiorna la struttura Giocatore
+//      con il nuovo punteggio.
+// Non modifica il tema e la domanda correnti
+// @returns -1 in caso di errore, 0 se la risposta è errata, 1 altrimenti 
+static inline int gestisciRispostaQuiz(char* rispostaGiocatore, struct Giocatore* g) {
+    // Se la stringa è vuota, non c'è bisogno di controllare la risposta
+    //      o incrementare il punteggio
+    if (!checkStringaNonVuota(rispostaGiocatore)) {
+        return 0;
+    }
+    char rispostaCorretta[DIM_RISPOSTA] = {0};
+    // Leggo la risposta in risposte.txt e controllo
+    if (!prelevaRiga(g->temaCorrente, g->domandaCorrente, rispostaCorretta, DIM_RISPOSTA, "./risposte.txt")) {
+        return -1;
+    }
+    // Nota: la rimozione del newline e l'aggiunta del fine stringa vengono fatti lato client
+    
+    // Confronto case insensitive tra la risposta data e quella letta dal file, 
+    //      partendo dal primo carattere che non fa parte dell'indice (il 4°)
+    return strcasestr(rispostaCorretta + 4, rispostaGiocatore) == NULL ? 0 : 1;
+}
+
+
+// Esamina il contenuto del buffer che contiene un messaggio ricevuto dal client,
+//      in base al tipo eseguo delle azioni e preparo un messaggio di risposta 
+//      nello stesso buffer
+// @param sd: descrittore del socket dal quale è stato ricevuto il messaggio dal client
+// @param buffer: buffer che contiene il messaggio
+// @returns int codice che il chiamante legge per determinare la
+//      prossima azione: 
+//      - ERROR (-1) se si è verificato un problema critico, come un bug,
+//        un problema di allocazione di memoria o di apertura di un file
+//      - DISCONNECT (0) se l'utente ha richiesto la disconnessione o se
+//        il messaggio contiene un messaggio imprevisto, imputabile ad un errore nel client
+//      - OK (1) altrimenti. In questo caso il buffer passato contiene il messaggio 
+//        da inviare in risposta 
 int gestisciMessaggio(int sd, char* buffer) {
     struct Messaggio* m = unpack(buffer); 
 
@@ -141,7 +179,9 @@ int gestisciMessaggio(int sd, char* buffer) {
 	    debug("in gestisciMessaggio()\ncampi del messaggio:\n- tipo: %u\n- flag: %u\n- len: %d\n- payload: %s\n",
     m->type, m->flags, m->msgLen, m->payload); 
     
-    // scelta di un nickname
+    // ******************************
+    //      scelta di un nickname
+    // ******************************
     if (m->type == NICK_PROPOSITION_T) {
     	debug("Il giocatore ha scelto un nickname: %s\n", m->payload);
     
@@ -214,8 +254,20 @@ int gestisciMessaggio(int sd, char* buffer) {
         return pack(THEME_LIST_T, nread, 0, listaTemi, buffer) ? OK : ERROR;
     }
 
-    // Scelta di un tema
-    else if (m->type == THEME_CHOICE_T) {
+    
+    // TODO: Mettere la showscore qui perché non serve avere il puntatore al giocatore
+
+    struct Giocatore* g;
+    if ((g = getGiocatore(sd)) == NULL) {
+        printf("Errore in gestisciMessaggio(): giocatore corrispondente al socket %d non trovato\n");
+        free(m);
+        return ERROR;
+    }
+       
+    // ******************************
+    //     Scelta di un tema
+    // ******************************
+    if (m->type == THEME_CHOICE_T) {
         // Controllo se il tema è già stato scelto precedentemente
         uint8_t t = atoi(m->payload);
         free(m);
@@ -224,8 +276,6 @@ int gestisciMessaggio(int sd, char* buffer) {
             return DISCONNECT;
         }
 
-        struct Giocatore* g = giocatori[getGiocatore(sd)];
-        
         if (checkTemaGiaScelto(t, g->statoTemi)) {
             printf("%s ha già partecipato al quiz del tema %u\n", g->nick, t);
             return DISCONNECT;
@@ -235,55 +285,83 @@ int gestisciMessaggio(int sd, char* buffer) {
             printf("%s sta già partecipando ad un altro quiz: %u\n", g->nick, g->temaCorrente);
             return DISCONNECT;
         }
-
-        // Aggiorno lo stato del giocatore
-        g->temaCorrente = t;
-
+        
         // Inserisco un nuovo record nella classifica
         if (!inserisciInClassifica(g->nick, t)) {
             // Errore nell'allocazione di memoria per il nuovo record
             return ERROR;
         }
 
+        // Aggiorno lo stato del giocatore
+        g->temaCorrente = t;
+        g->domandaCorrente = 1;
+        
         debug("Prelevo la prima domanda del tema %u\n", t);
         // Prelevo la prima domanda da domande.txt
-        char domande[DIM_DOMANDA] = {0};
-        prelevaRiga()
-        
-
-        // Preparo il messaggio con la prima domanda nel buffer
-            // Setto il flag FIRST_QST
-            // ...
-        // return OK;
+        char domanda[DIM_DOMANDA] = {0};
+        if (!prelevaRiga(t, 1, domanda, DIM_DOMANDA, "./domande.txt")) {
+            return ERROR;
+        }
+        // Preparo il messaggio con la prima domanda nel buffer,
+        //      con il flag FIRST_QST settato
+        return pack(QUESTION_T, DIM_DOMANDA, FIRST_QST, domanda, buffer) ?
+            OK : ERROR; 
     }
-
-    // Risposta ad una domanda del quiz
+    
+    
+    // *****************************************
+    //      Risposta ad una domanda del quiz
+    // *****************************************
     else if (m->type == ANSWER_T) {
         // TODO: per gestire questo caso, meglio fare una funzione apposita
 
         // Controlli di consistenza
-        // ...
+        if (g->temaCorrente == 0) {
+            free(m);
+            return DISCONNECT;
+        }
 
-        // Aggiorno lo stato del giocatore
-        // ...
+        int ret = gestisciRispostaQuiz(m->payload, g);
+        free(m);
 
-        // Se non era l'ultima domanda, prelevo la prossima
-        // ...
+        if (ret == -1) return ERROR;
 
-        // Altrimenti setto il flag NO_QST
-        // ...
+        flag_t flags = ret ? PREV_ANS_CORRECT : 0;
         
-        // Leggo la risposta in risposte.txt e controllo
-        // ...
+        // Aggiorno il punteggio in classifica
+        if (ret && !incrementaPunteggio(g->nick, ++(g->punteggioCorrente), g->temaCorrente))
+            return ERROR;
+        
+        // Se era l'ultima domanda, marco il tema come completato, 
+        //      azzero tema e domanda corrente e preparo nel buffer 
+        //      un messaggio con solo i flag
+        if (g->domandaCorrente == NUM_DOMANDE) {
+            g->statoTemi[g->temaCorrente - 1] = true;
+            g->temaCorrente = 0;
+            g->domandaCorrente = 0;
+            // Il flag NO_QST indica che il messaggio non contiene una domanda
+            flag_t ^= NO_QST;
+            debug("Era l'ultima domanda, campo flag: %u\n", flags);
+            return pack(QUESTION_T, 0, flags, "", buffer) ? OK : ERROR;
+        }
 
-        // Preparo il messaggio con esito della risposta 
-        //      e eventualmente prossima domanda
-        // ...
-		// free(m);
-        // return OK;
+        // Aggiorno il punteggio in classifica
+        if (ret == 1 && !incrementaPunteggio(g->nick, ++(g->punteggioCorrente), g->temaCorrente))
+            return ERROR;
+        
+        g->domandaCorrente++;
+        // Prelevo la prossima domanda e preparo il messaggio nel buffer
+        char domanda[DIM_DOMANDA] = {0};
+        if (!prelevaRiga(g->temaCorrente, g->domandaCorrente, domanda, DIM_DOMANDA, "./domande.txt")) {
+            return ERROR;
+        }
+        return pack(QUESTION_T, DIM_DOMANDA, FIRST_QST, domanda, buffer) ?
+            OK : ERROR; 
     }
 
-    // Richiesta della classifica
+    // ******************************
+    //      Comando show score
+    // ******************************
     else if (m->type == SHOW_SCORE_T) {
         // Serializzo la classifica
         // ...
@@ -294,6 +372,9 @@ int gestisciMessaggio(int sd, char* buffer) {
         // return OK;
     }
 
+    // ******************************
+    //      Comando endquiz
+    // ******************************
     else if (m->type == ENDQUIZ_T) {
         // Dealloca le strutture dati
         // ...

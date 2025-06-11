@@ -34,7 +34,7 @@ int main() {
 
 
 	// if ( ( giocatori[0] = registraGiocatore(tmpNick) ) != NULL ){
-	// 	printf("Nickname: %s\nTema: %u\nProssima domanda: %u\n", giocatori[0]->nick, giocatori[0]->temaCorrente, giocatori[0]->prossimaDomanda);
+	// 	printf("Nickname: %s\nTema: %u\nProssima domanda: %u\n", giocatori[0]->nick, giocatori[0]->temaCorrente, giocatori[0]->domandaCorrente);
 	// 	for (int i = 0 ; i < NUM_TEMI ; i++) 
 	// 		printf( (giocatori[0]->statoTemi[i] ? "Tema %d completato\n" : "Tema %d non completato\n"), i + 1 );
 	// }
