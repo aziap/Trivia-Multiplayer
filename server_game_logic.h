@@ -98,34 +98,33 @@ bool checkNickPreso(char* nick) {
 
 // Preleva una riga indicizzata da "tema" e "numero" dal file "fileTarget"
 // Usata per prelevare domande e risposte dai rispettivi file
-static inline char* prelevaRiga(uint8_t tema, uint8_t numero, int len, char* fileTarget, ) {
-    if (tema > 9 || numero > 9) {
-        // Sappiamo che "tema" e "numero" sono interi a una cifra, 
-        //      ma è meglio proteggersi nel caso di un input errato
-        //      che altrimenti verrebbe gestito in maniera errata
-        printf("Errore in prelevaRiga(): tema e numero devono avere una sola cifra\n");
-        return NULL;
+static inline bool prelevaRiga(uint8_t tema, uint8_t numero, char* bufLinea, int len, char* fileTarget) {
+    if (tema > NUM_TEMI || tema == 0 || numero > NUM_DOMANDE || numero == 0) {
+    	printf("Errore in prelevaRiga(): l'id del tema deve essere compreso tra 0 e %d (valore passato: %u) e il numero della domanda/risposta deve essere compreso tra 0 e %d (valore passato: %u)\n", NUM_TEMI, tema, NUM_DOMANDE, numero);
+    	return false;
     }
+    
     FILE* target;
     if ((target = fopen(fileTarget, "r")) == NULL) {
-        return NULL;
+        return false;
     }
     // Creo una stringa con "<tema><separatore><numero>"
-    int daComparare = 3;
+    int daComparare = 3;	// Assumendo che tema e numero siano ad una cifra
     char indiceRiga[daComparare];
     indiceRiga[0] = '0' + tema;
     indiceRiga[1] = SEP; 
-    indiceRiga[3] = '0' + numero;
-    char* linea;
-    while (fgets(linea, len, target) != NULL && strncmp(linea, indiceRiga, daComparare) != 0) {
-        debug("Riga letta: %s\n", linea);
+    indiceRiga[2] = '0' + numero;
+    while (fgets(bufLinea, len, target) != NULL && strncmp(bufLinea, indiceRiga, daComparare) != 0) {
+        debug("Riga letta: %s\n", bufLinea);
+    }
+    if (ferror(target) != 0) {
+        perror("Errore in prelevaRiga(), fgets()");
+        bufLinea[0] = 0;
+        return false;
     }
     fclose(target);
-    if (linea == NULL) {
-        printf("Errore in prelevaRiga(): indice %s non trovato\n", indiceRiga);
-        return NULL;
-    }
-    return linea;
+    bufLinea[strcspn(bufLinea, "\n")] = 0;
+    return true;
 }
 
 
@@ -218,7 +217,6 @@ int gestisciMessaggio(int sd, char* buffer) {
     // Scelta di un tema
     else if (m->type == THEME_CHOICE_T) {
         // Controllo se il tema è già stato scelto precedentemente
-        // ...
         uint8_t t = atoi(m->payload);
         free(m);
         if (!checkValoreTema(t)) {
@@ -226,7 +224,7 @@ int gestisciMessaggio(int sd, char* buffer) {
             return DISCONNECT;
         }
 
-        struct Giocatore* g = getGiocatore(sd);
+        struct Giocatore* g = giocatori[getGiocatore(sd)];
         
         if (checkTemaGiaScelto(t, g->statoTemi)) {
             printf("%s ha già partecipato al quiz del tema %u\n", g->nick, t);
@@ -234,7 +232,7 @@ int gestisciMessaggio(int sd, char* buffer) {
         }
 
         if(g->temaCorrente != 0) {
-            printf("%s sta già partecipando ad un altro quiz: %u\n", g->temaCorrente);
+            printf("%s sta già partecipando ad un altro quiz: %u\n", g->nick, g->temaCorrente);
             return DISCONNECT;
         }
 
@@ -249,6 +247,8 @@ int gestisciMessaggio(int sd, char* buffer) {
 
         debug("Prelevo la prima domanda del tema %u\n", t);
         // Prelevo la prima domanda da domande.txt
+        char domande[DIM_DOMANDA] = {0};
+        prelevaRiga()
         
 
         // Preparo il messaggio con la prima domanda nel buffer
