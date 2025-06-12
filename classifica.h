@@ -230,7 +230,7 @@ int serializzaClassifica(char* buffer){
 	
 	if (len > MAX_DIM_PAYLOAD) {
 		printf("La classifica contiene troppi record per essere inviata\n");
-		return -1;
+		return 0;
 	}
 	
 	/*

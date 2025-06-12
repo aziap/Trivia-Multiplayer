@@ -147,6 +147,10 @@ static inline int gestisciRispostaQuiz(char* rispostaGiocatore, struct Giocatore
 }
 
 
+// ******************************
+//      GESTIONE MESSAGGI CLIENT
+// ******************************
+
 // Esamina il contenuto del buffer che contiene un messaggio ricevuto dal client,
 //      in base al tipo eseguo delle azioni e preparo un messaggio di risposta 
 //      nello stesso buffer
@@ -248,13 +252,19 @@ int gestisciMessaggio(int sd, char* buffer) {
     //      Comando show score
     // ******************************
     else if (m->type == SHOW_SCORE_T) {
+    	free(m);
+        char* classifica;
         // Serializzo la classifica
-        char* classifica = serializzaClassifica();
+        if ((classifica = malloc(MAX_DIM_PAYLOAD)) == NULL) return ERROR;
+        uint16_t len = serializzaClassifica(classifica);
 
-        // Impacchetto nel buffer
-        // ...
-		// free(m);
-        // return OK;
+        // La impacchetto nel buffer
+        if (pack(RANK_T, len, 0, classifica, buffer)) {
+		    free(classifica);
+		    return OK;
+        }
+        free(classifica);
+        return ERROR;
     }
 
     struct Giocatore* g;

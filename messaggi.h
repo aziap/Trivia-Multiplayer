@@ -114,7 +114,7 @@ bool pack(msg_t type, msgsize_t len, flag_t flags, char* payload, char* buffer) 
     offset += sizeof(flag_t);
 
 	// Copio il payload
-    strncpy(buffer + offset, payload, len);
+    memcpy(buffer + offset, payload, len);
     debug("Primo carattere del payload: %c\n", buffer[offset]);
     buffer[offset + len] = '\0';
 
