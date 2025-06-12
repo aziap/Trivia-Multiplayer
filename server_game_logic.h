@@ -40,6 +40,7 @@ int numGiocatori = 0;
 
 struct Giocatore* giocatori[MAX_CLIENTS];
 
+
 // Dato il socket descriptor, restituisce l'indice del giocatore
 //      nell'array giocatori[]
 static inline struct Giocatore* getGiocatore(int sd) {
@@ -243,8 +244,18 @@ int gestisciMessaggio(int sd, char* buffer) {
         return pack(THEME_LIST_T, nread, 0, listaTemi, buffer) ? OK : ERROR;
     }
 
-    
-    // TODO: Mettere la showscore qui prima di dichiarare il puntatore al giocatore
+    // ******************************
+    //      Comando show score
+    // ******************************
+    else if (m->type == SHOW_SCORE_T) {
+        // Serializzo la classifica
+        char* classifica = serializzaClassifica();
+
+        // Impacchetto nel buffer
+        // ...
+		// free(m);
+        // return OK;
+    }
 
     struct Giocatore* g;
     if ((g = getGiocatore(sd)) == NULL) {
@@ -343,19 +354,6 @@ int gestisciMessaggio(int sd, char* buffer) {
         }
         return pack(QUESTION_T, DIM_DOMANDA, FIRST_QST, domanda, buffer) ?
             OK : ERROR; 
-    }
-
-    // ******************************
-    //      Comando show score
-    // ******************************
-    else if (m->type == SHOW_SCORE_T) {
-        // Serializzo la classifica
-        // ...
-
-        // Impacchetto nel buffer
-        // ...
-		// free(m);
-        // return OK;
     }
 
     // ******************************

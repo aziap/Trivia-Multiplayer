@@ -221,33 +221,38 @@ bool rimuoviRankGiocatore(char* nick, uint8_t tema) {
 }
 
 // Formatta la classifica in una stringa di caratteri per poterla inserire in un messaggio
-char* serializzaClassifica(){
+// @param buffer: dove iniserire la classifica. ATTENZIONE: la dimensione del buffer
+// 		deve essere almeno uguale a MAX_DIM_PAYLOAD (1020)
+// @returns int -1 in caso di errore, altrimenti il numero di byte occupati nel buffer
+int serializzaClassifica(char* buffer){
+	if (!contatoreRecord) return 0;
 	int len = contatoreRecord * (DIM_NICK + 2); // 1 byte per il tema + 1 byte per il punteggio 
 	
 	if (len > MAX_DIM_PAYLOAD) {
 		printf("La classifica contiene troppi record per essere inviata\n");
-		return NULL;
+		return -1;
 	}
 	
-	char *msgClassifica;
-	if ((msgClassifica = malloc(len)) == NULL) {
+	/*
+	if ((buffer = malloc(len)) == NULL) {
 		perror("Allocazione della memoria per serializzare la classifica fallita");
 		return NULL;
 	}
+	*/
 
 	int offset = 0;
 	for(int i = 0; i < NUM_TEMI; i++) {
 		if (classificaTema[i] == NULL) continue; 
 		struct RankGiocatore *cur = classificaTema[i]; 
 		while(cur != NULL) {
-			msgClassifica[offset++] = (uint8_t)(i + 1);	// Tema
-			strncpy(msgClassifica + offset, cur->nick, DIM_NICK);	// Nickname del giocatore
+			buffer[offset++] = (uint8_t)(i + 1);	// Tema
+			strncpy(buffer + offset, cur->nick, DIM_NICK);	// Nickname del giocatore
 			offset += DIM_NICK;
-			msgClassifica[offset++] = cur->punti;	// Punteggio del giocatore
+			buffer[offset++] = cur->punti;	// Punteggio del giocatore
 			cur = cur->next;
 		}
 	}
-	return msgClassifica;
+	return len;
 }
 
 #endif

@@ -56,11 +56,12 @@ int main() {
 
 	// stampaClassifica();
 
-	char* payloadRank = serializzaClassifica();
+	char buf[MAX_DIM_PAYLOAD] = {0};
+
+	int ret = serializzaClassifica(buf);
 	int len = (DIM_NICK + 2) * 3;	// classifica in questo caso 
-	stampaClassificaClient(payloadRank, len);
+	stampaClassificaClient(buf, len);
 	
-	free(payloadRank);
 
 	// END DEBUG
 
