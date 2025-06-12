@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-static inline checkStringaNonVuota(char* str) {
+static inline bool checkStringaNonVuota(char* str) {
     int i = 0;
 	while (i <= strlen(str)
 		&& ( str[i] == ' ' || str[i] == '\n' || str[i] == '\t' || str[i] == '\0')

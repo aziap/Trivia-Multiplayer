@@ -44,7 +44,7 @@ struct Giocatore* giocatori[MAX_CLIENTS];
 //      nell'array giocatori[]
 static inline struct Giocatore* getGiocatore(int sd) {
     int index = 0;
-    while (index <= numGiocatori && index != giocatori[index]->sd) {
+    while (index <= numGiocatori && sd != giocatori[index]->sd) {
         ++index;
     }
     return index <= numGiocatori ? giocatori[index] : NULL;
@@ -116,9 +116,7 @@ static inline bool prelevaRiga(uint8_t tema, uint8_t numero, char* bufLinea, int
     indiceRiga[0] = '0' + tema;
     indiceRiga[1] = SEP; 
     indiceRiga[2] = '0' + numero;
-    while (fgets(bufLinea, len, target) != NULL && strncmp(bufLinea, indiceRiga, daComparare) != 0) {
-        debug("Riga letta: %s\n", bufLinea);
-    }
+    while (fgets(bufLinea, len, target) != NULL && strncmp(bufLinea, indiceRiga, daComparare) != 0) {}
     if (ferror(target) != 0) {
         perror("Errore in prelevaRiga(), fgets()");
         bufLinea[0] = 0;
@@ -136,7 +134,6 @@ static inline bool prelevaRiga(uint8_t tema, uint8_t numero, char* bufLinea, int
 // @returns -1 in caso di errore, 0 se la risposta è errata, 1 altrimenti 
 static inline int gestisciRispostaQuiz(char* rispostaGiocatore, struct Giocatore* g) {
     // Se la stringa è vuota, non c'è bisogno di controllare la risposta
-    //      o incrementare il punteggio
     if (!checkStringaNonVuota(rispostaGiocatore)) {
         return 0;
     }
@@ -145,11 +142,7 @@ static inline int gestisciRispostaQuiz(char* rispostaGiocatore, struct Giocatore
     if (!prelevaRiga(g->temaCorrente, g->domandaCorrente, rispostaCorretta, DIM_RISPOSTA, "./risposte.txt")) {
         return -1;
     }
-    // Nota: la rimozione del newline e l'aggiunta del fine stringa vengono fatti lato client
-    
-    // Confronto case insensitive tra la risposta data e quella letta dal file, 
-    //      partendo dal primo carattere che non fa parte dell'indice (il 4°)
-    return strcasestr(rispostaCorretta + 4, rispostaGiocatore) == NULL ? 0 : 1;
+    return strncasecmp(rispostaCorretta + 4, rispostaGiocatore, strlen(rispostaCorretta)) != 0 ? 0 : 1;
 }
 
 
@@ -218,16 +211,12 @@ int gestisciMessaggio(int sd, char* buffer) {
         if (registraGiocatore(nick, sd) == NULL) {
             return DISCONNECT;
         }
-	
-		debug("in gestisciMessaggio(), sto per leggere temi.txt\n");
 
         FILE* temi; 
         if ((temi = fopen("./temi.txt","r")) == NULL) {
             perror("Errore nell'apertura di temi.txt");
             return ERROR;
         }
-        
-        debug("Apertura del file riuscita\n");
         
         // Copio la lista dei temi in un buffer temporaneo
         char listaTemi[DIM_TEMA * NUM_TEMI];
@@ -255,11 +244,11 @@ int gestisciMessaggio(int sd, char* buffer) {
     }
 
     
-    // TODO: Mettere la showscore qui perché non serve avere il puntatore al giocatore
+    // TODO: Mettere la showscore qui prima di dichiarare il puntatore al giocatore
 
     struct Giocatore* g;
     if ((g = getGiocatore(sd)) == NULL) {
-        printf("Errore in gestisciMessaggio(): giocatore corrispondente al socket %d non trovato\n");
+        printf("Errore in gestisciMessaggio(): giocatore corrispondente al socket %d non trovato\n", sd);
         free(m);
         return ERROR;
     }
@@ -321,6 +310,7 @@ int gestisciMessaggio(int sd, char* buffer) {
             return DISCONNECT;
         }
 
+		// ret: -1 -> errore; 1 -> risposta corretta; 0 -> risposta sbagliata 
         int ret = gestisciRispostaQuiz(m->payload, g);
         free(m);
 
@@ -334,20 +324,16 @@ int gestisciMessaggio(int sd, char* buffer) {
         
         // Se era l'ultima domanda, marco il tema come completato, 
         //      azzero tema e domanda corrente e preparo nel buffer 
-        //      un messaggio con solo i flag
+        //      un messaggio con solo l'esito
         if (g->domandaCorrente == NUM_DOMANDE) {
             g->statoTemi[g->temaCorrente - 1] = true;
             g->temaCorrente = 0;
             g->domandaCorrente = 0;
             // Il flag NO_QST indica che il messaggio non contiene una domanda
-            flag_t ^= NO_QST;
+            flags ^= NO_QST;
             debug("Era l'ultima domanda, campo flag: %u\n", flags);
             return pack(QUESTION_T, 0, flags, "", buffer) ? OK : ERROR;
         }
-
-        // Aggiorno il punteggio in classifica
-        if (ret == 1 && !incrementaPunteggio(g->nick, ++(g->punteggioCorrente), g->temaCorrente))
-            return ERROR;
         
         g->domandaCorrente++;
         // Prelevo la prossima domanda e preparo il messaggio nel buffer
