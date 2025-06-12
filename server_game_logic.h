@@ -43,12 +43,12 @@ struct Giocatore* giocatori[MAX_CLIENTS];
 
 // Dato il socket descriptor, restituisce l'indice del giocatore
 //      nell'array giocatori[]
-static inline struct Giocatore* getGiocatore(int sd) {
+static inline int getGiocatore(int sd) {
     int index = 0;
     while (index <= numGiocatori && sd != giocatori[index]->sd) {
         ++index;
     }
-    return index <= numGiocatori ? giocatori[index] : NULL;
+    return index <= numGiocatori ? index : -1;
 }
 
 
@@ -85,6 +85,26 @@ struct Giocatore* registraGiocatore(char* nick, int sd) {
 	return g;
 }
 
+void rimuoviGiocatore(sd) {
+    int index = getGiocatore(sd);
+    // Il giocatore corrispondente al sd non era ancora registrato
+    if (index == -1) return;
+    struct Giocatore* g = giocatori[index]; 
+
+    if (g->temaCorrente)
+        rimuoviRankGiocatore(g->nick, g->temaCorrente);
+    
+    for(int i = 0; i < NUM_TEMI; i++) {
+        if(!g->statoTemi[i])
+            continue;
+        rimuoviRankGiocatore(g->nick, i + 1);
+    }
+    
+    free(g);
+
+    giocatori[index] = giocatori[--numGiocatori];
+    return;
+}
 
 // Controllo se esiste un giocatore registrato con un certo nickname
 // @returns true se esiste, false altrimenti
@@ -113,10 +133,7 @@ static inline bool prelevaRiga(uint8_t tema, uint8_t numero, char* bufLinea, int
     }
     // Creo una stringa con "<tema><separatore><numero>"
     int daComparare = 3;	// Assumendo che tema e numero siano ad una cifra
-    char indiceRiga[daComparare];
-    indiceRiga[0] = '0' + tema;
-    indiceRiga[1] = SEP; 
-    indiceRiga[2] = '0' + numero;
+    char indiceRiga[daComparare] = {'0' + tema, SEP, '0' + numero};
     while (fgets(bufLinea, len, target) != NULL && strncmp(bufLinea, indiceRiga, daComparare) != 0) {}
     if (ferror(target) != 0) {
         perror("Errore in prelevaRiga(), fgets()");
@@ -182,6 +199,13 @@ int gestisciMessaggio(int sd, char* buffer) {
     // ******************************
     if (m->type == NICK_PROPOSITION_T) {
     	debug("Il giocatore ha scelto un nickname: %s\n", m->payload);
+
+        // Controllo di non avere già un giocatore associato allo stesso socket descriptor
+        if(getGiocatore(sd) != -1) {
+            free(m);
+            printf("Il giocatore con sd = %d era già registrato\n", sd);
+            return DISCONNECT;
+        }
     
         // Controllo la validità del formato.
         //      I controlli sono già stati fatti lato client, se il 
@@ -210,7 +234,7 @@ int gestisciMessaggio(int sd, char* buffer) {
             return OK;
         }
     	
-    	debug("Il nick è disponibile\n");    
+    	debug("Il nick è disponibile\n");
         
         // Registro il giocatore
         if (registraGiocatore(nick, sd) == NULL) {
@@ -267,12 +291,13 @@ int gestisciMessaggio(int sd, char* buffer) {
         return ERROR;
     }
 
-    struct Giocatore* g;
-    if ((g = getGiocatore(sd)) == NULL) {
+    int index = getGiocatore(sd); 
+    if (index == -1) {
         printf("Errore in gestisciMessaggio(): giocatore corrispondente al socket %d non trovato\n", sd);
         free(m);
         return ERROR;
     }
+    struct Giocatore* g = giocatori[index];
        
     // ******************************
     //     Scelta di un tema
@@ -370,14 +395,12 @@ int gestisciMessaggio(int sd, char* buffer) {
     //      Comando endquiz
     // ******************************
     else if (m->type == ENDQUIZ_T) {
-        // Dealloca le strutture dati
-        // ...
-        
-        // Rimuovi tutti i record dalla classifica
-        // ...
-		// free(m);
-        // return DISCONNECT;
+        free(m);
+        // Sarà il chiamante a chiamare la funzione per deallocare le strutture dati
+        return DISCONNECT;
     }
+    
+    // Se arrivo fin qui, il tipo del messaggio non è valido
     free(m);
     return ERROR;
 }

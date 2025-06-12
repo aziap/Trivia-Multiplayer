@@ -1,5 +1,4 @@
 #include "server_game_logic.h"
-#include "messaggi.h" 
 
 #ifndef DEBUG_ON 
 #define DEBUG_ON 1
@@ -17,10 +16,9 @@ void stampaEsito(int e) {
 
 int main() {
     // Testo la registrazione di un giocatore
-    char nickProva[][50] = {"nick valido", "nickname decisamente troppo lungo"};
+    char nickProva[][50] = {"gioacchino", "nickname decisamente troppo lungo"};
 	
     if(!pack(NICK_PROPOSITION_T, 50, 0, nickProva[0], buffer)) {
-        printf("manco va la pack()...\n");
         return 0;
     }
 

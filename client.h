@@ -10,6 +10,25 @@
 #endif
 #include "debug.h"
 
+
+
+static inline char* leggiStringa(char* buffer) {
+        fgets(buffer, DIM_BUFFER, stdin);
+        int len = strcspn(buffer, "\n");
+        buffer[len] = 0;
+        return buffer;
+}
+
+static inline void printFrame() {
+    printf("+++++++++++++++++\n")
+}
+
+static inline void stampaTitolo() {
+    printf("Trivia Quiz");
+}
+
+
+
 void stampaClassificaClient(char *msgClassifica, msgsize_t len) {
     int offset = 0;
     char tmpNick[DIM_NICK] = {0};
@@ -35,8 +54,5 @@ void stampaClassificaClient(char *msgClassifica, msgsize_t len) {
 
 }
 
-
-// TODO: spostare in libreria per i controlli sugli input
-// TODO: generalizzare togliendo le stampe in modo da poterlo usare sia lato client che server (magari ritornando un tipo d'errore)
 
 #endif

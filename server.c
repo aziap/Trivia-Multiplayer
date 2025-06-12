@@ -15,8 +15,8 @@
 // DEBUG
 #ifndef DEBUG_ON
 #define DEBUG_ON
-#include "debug.h"
 #endif
+#include "debug.h"
 // END DEBUG
 
 #define PORT 1919 
@@ -42,14 +42,13 @@ static inline void disconnettiClient(int index, int *sdArr, int *nextSd, fd_set 
     debug("Rimuovo il sd dal master set\n");
     FD_CLR(sd, master);
 
-    // TODO spostare l'ultimo elemento dei client_socket al posto di quello appena eliminato
-    // TODO IMPORTANTISSIMO: dire al game logic handler di rimuovere l'entry corrispondente dall'indice socket -> Giocatore  
-    debug("TODO: rimuovere %d dall'indice!", sd);
+    rimuoviGiocatore(sd);
 }
 
 static inline void closeAll( int listenerSd, int* sdArr, int* nextSd) {
     while(*nextSd > 0) {
-        close(sdArr[--(*nextSd)]);
+        rimuoviGiocatore(sdArr[--(*nextSd)])
+        close(sdArr[*nextSd]);
     }
     close((listenerSd));
 }
@@ -57,9 +56,11 @@ static inline void closeAll( int listenerSd, int* sdArr, int* nextSd) {
 
 int main() {
     int listener, newfd, maxfd, ret; 
+    // Numero massimo di connessioni in attesa di accept()
     int backlog = MAX_CLIENTS <= MAX_BACKLOG ? MAX_CLIENTS : MAX_BACKLOG;
-    // TODO: incrementare a nuova connessione e decrementare a chiusura di una connessione (per la chiusura potrei scrivere una inline function)
     int numclient = 0; 
+    // Array che contiene tutti i descrittori di socket dei
+    //      client connessi
     int client_socket[MAX_CLIENTS] = {0};
     
     fd_set master;
@@ -119,7 +120,7 @@ int main() {
 
         if (ret < 0) {
             perror("Select fallito");
-            // TODO: close all
+            closeAll(listener, client_socket, &numclient);
             exit(EXIT_FAILURE);
         }
 
@@ -145,7 +146,8 @@ int main() {
         client_socket[numclient++] = newfd;
 
         // TODO: dire al glh di aggiungere una entry con un nuovo giocatore (per ora a NULL) nell'indice
-        
+        //  oppure no? registro un giocatore solo quando sceglie un nick
+
         int sd;
         // Controllo se ci sono messaggi dai client connessi
         for (int i = 0; i < numclient; i++) {

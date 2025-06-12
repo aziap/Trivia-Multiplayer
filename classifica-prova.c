@@ -66,7 +66,16 @@ int main() {
 	printf("classifica lato client:\n");
 	stampaClassificaClient(m->payload, m->msgLen);
 	
+	printf("Un giocatore si è disconnesso\n");
+	rimuoviGiocatore(1);
+
+	pack(SHOW_SCORE_T, 0, 0, "", buffer);
+	printf("Esito invio messaggio: %d\n", gestisciMessaggio(99, buffer));
+	struct Messaggio* m = unpack(buffer);
+	printf("classifica lato client:\n");
+	stampaClassificaClient(m->payload, m->msgLen);
 	
+
 	/*
 	char classifica[MAX_DIM_PAYLOAD] = {0};
 	serializzaClassifica(classifica);

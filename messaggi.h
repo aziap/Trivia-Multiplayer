@@ -29,7 +29,7 @@ const msg_t NICK_UNAVAIL_T = 6;     // Nickname già preso (in caso contratio,
 const msg_t NICK_PROPOSITION_T = 10;
 const msg_t THEME_CHOICE_T = 11;
 const msg_t ANSWER_T = 12;
-const msg_t ENDQUIZ_T = 13;
+const msg_t ENDQUIZ_T = 13; // NON SERVE
 const msg_t SHOW_SCORE_T = 14;
 
 // Definiscono il range dei tipi validi
@@ -42,6 +42,7 @@ const msg_t lastCliType = SHOW_SCORE_T;
 const flag_t FIRST_QST = 0b0001;    // Prima domanda
 const flag_t PREV_ANS_CORRECT = 0b0010;     // La risposta precedente era corretta (sbagliata se non settato)
 const flag_t NO_QST = 0b0100;   // Il messaggio non contiene domande, solo l'esito dell'ultima risposta
+
 
 /*
 Struttura generica di un messaggio:
