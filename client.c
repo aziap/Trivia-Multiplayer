@@ -26,6 +26,7 @@ struct GiocatoreClient {
 } giocatore;
 
 bool endQuiz = false;
+int sd; // Socket descriptor per la comunicazione col server
 
 int connettiUtente(int port) {
     int server_fd;
@@ -54,7 +55,7 @@ int connettiUtente(int port) {
     return server_fd;
 }
 
-void showScore(char* buffer, int sd) {
+void showScore(char* buffer) {
     pack(SHOW_SCORE_T, 0, 0, "", buffer);
     // TODO: eventualmente fare qualcosa con numRet
     int numRet = send(sd, buffer, HEADER_LEN, 0);
@@ -83,10 +84,10 @@ char sceltaMenu() {
 }
 
 
-struct Messaggio scegliNickname(char* buffer, int sd) {
+struct Messaggio controlloNickname(char* buffer) {
     while(1) {
         printf("Scegli un nickname (deve essere univoco):\n");
-        leggiStringa(buffer);
+        leggiStringa(buffer, DIM_NICK + 1);
         if (!checkNicknameFormat(buffer)) {
             fprintf("Formato non valido: il nickname deve contenere almeno un carattere non spazio e non può superare i 15 caratteri\n");
             continue;
@@ -107,20 +108,24 @@ struct Messaggio scegliNickname(char* buffer, int sd) {
     }
 }
 
-// TODO: uscito da scegliNickname()
-    // if (m->type == NICK_UNAVAIL_T) {
-    //     printf("Il nickname scelto è già preso da un altro giocatore");
-    //     continue;
-    // }
-    // // Ho ricevuto la lista dei temi, posso proseguire
-    // memccpy(buffer, m->payload, m->msgLen);
-    // break;
+void scegliNickname(char* buffer) {
+    struct Messaggio* esito;
+    while (1) { 
+        esito = controlloNickname(buffer);
+        if (esito->type == NICK_UNAVAIL_T) {
+            printf("Il nickname scelto è già preso da un altro giocatore");
+            continue;
+        }
+    }// Ho ricevuto la lista dei temi, posso proseguire
+    memccpy(buffer, esito->payload, esito->msgLen);
+    break;
+}
 
 // TODO: aggiornare giocatore
 
 // TODO: Estrarre la lista dei temi dal payload del messaggio e formattarla in un array di stringhe
 
-void sceltaTema(char** temi, char* buffer, int sd) {
+void sceltaTema(char** temi, char* buffer) {
     int tema;
 
     pritnf("Quiz disponibili\n");
@@ -130,7 +135,7 @@ void sceltaTema(char** temi, char* buffer, int sd) {
     }
     printFrame();
     
-    // Buffer di dimensione arbitraria sufficiente a contenere un comando
+    // Buffer di dimensione arbitraria, sufficiente a contenere un comando
     char scelta[20] = {0}
     while (1) {
         printf("La tua scelta:\n");
@@ -146,7 +151,8 @@ void sceltaTema(char** temi, char* buffer, int sd) {
         if (strcmp(ENDQUIZ, buffer) == 0) {
             // TODO: endquiz
             printf("endquiz: working on it...\n");
-            continue;
+            endQuiz = true;
+            break;
         }
         else if (strcmp(SHOW_SCORE, buffer) == 0) {
             // TODO: showScore()
@@ -164,17 +170,81 @@ void sceltaTema(char** temi, char* buffer, int sd) {
     pack(THEME_CHOICE_T, 0, 0, (uint8_t)tema, buffer);
     // TODO: che ci faccio?
     int numRet = send(sd, buffer, HEADER_LEN + 1, 0);
-    memset(buffer, 0, DIM_BUFFER);
+    memset(buffer, 0, HEADER_LEN + 1);
     if (numRet = recv(sd, buffer, DIM_BUFFER, 0) == 0) {
         printf("Gestione disconnessione: coming soon\n");
         return;
     }
     // TODO: fare l'unpack nella funzione per le domande
+    printFrame();
+    printf("Quiz - %s\n", temi[tema - 1]);
+    printFrame();
+}
+
+void svolgiQuiz(char* buffer, int tema) {
+    giocatore.domandaCorrente = 1;
+    char domanda[DIM_DOMANDA] = {0};
+    char risposta[DIM_RISPOSTA] = {0};
+    struct Messaggio* m;
+    while(1) {
+        // Il buffer contiene domanda inviata dal server
+        m = unpack(buffer);
+        memset(buffer, 0, DIM_BUFFER);
+        // Leggere i flag:
+        // Se non è la prima domanda, stampare l'esito
+        if (!(m->flags & FIRST_QST)) {
+            printf("Risposta %s\n", m->flags & PREV_ANS_CORRECT ? "corretta" : "sbagliata");
+        }
+
+        // Se è l'ultima domanda, aggiorno lo stato del giocatore 
+        //      e torno alla scelta dei temi
+        if (m->flags & NO_QST) {
+            giocatore.temaCorrente = 0;
+            giocatore.domandaCorrente = 0;
+            giocatore.temiCompletati[tema - 1] = true;
+            free(m)
+            break;
+        }
+
+        while(1) {    
+            // Stampa la domanda, escludendo l'indice
+            printf("%s\nRisposta:\n", m->payload + 4);
+            // Leggi la risposta
+            leggiStringa(risposta, DIM_RISPOSTA);
+            // Fai il check per il comando
+            if (strcmp(risposta, SHOW_SCORE) == 0) {
+                //  TODO: showScore();
+                printf("showScore(): working on it...\n");
+                continue;
+            }
+            if (strcmp(risposta, ENDQUIZ) == 0) {
+                // Gestione endquiz
+                // ...
+                printf("endquiz(): working on it...\n");
+                endQuiz = true;
+                break;
+            }
+            // ImpacchettO la risposta e la mandao al server
+            pack(ANSWER_T, DIM_RISPOSTA, 0, risposta, buffer);
+            send(sd, buffer, DIM_RISPOSTA + HEADER_LEN, 0);
+            memset(buffer, 0, DIM_RISPOSTA + HEADER_LEN);
+            int numRet = recv(sd, buffer, DIM_BUFFER, 0);
+            break;  // Esco e stampo la domanda successiva
+        } // END loop gestione risposta
+        free(m);
+        if (endQuiz) break;
+    } // END loop domanda - risposta
 }
 
 
+int main() {
+    char scelta = sceltaMenu();
+    printf("%s\n", scelta);
+}
 
-int main(int argc, char* argv[]) {
+
+int veroMain(int argc, char* argv[]) {
+    
     if (argc < 2){
         printf("Numero di argomenti insufficiente. Attesa la porta in ascolto del server.\n");
         return 0;
@@ -191,7 +261,7 @@ int main(int argc, char* argv[]) {
     // Se AVVIO, comincia connessione
     
     int port = atoi(argv[1]);
-    int sd = connettiUtente(port);
+    sd = connettiUtente(port);
 
     // Aspetto il primo messaggio del server
     // ******************************
@@ -249,13 +319,13 @@ int main(int argc, char* argv[]) {
         // Gestisci risposta del server
 
         printf("Messaggio: ");
-        leggiStringa(buffer);
+        leggiStringa(buffer, DIM_BUFFER);
 
         // Invio il messaggio
 
         send(server_fd, buffer, len, 0);
-
+        break;
     }
-    close(server_fd);
+    close(sd);
     return 0;
 }

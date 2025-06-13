@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "input_check.h"
+#include "client.h"
 
 
 int main() {
@@ -31,6 +32,7 @@ int main() {
     printf("Esito: %s\n", (checkNicknameFormat(gucci)) ? "Ok" : ">:(");
     */
 
+    /*
     // Controllo sull'opzione
     for (int op = 0; op < 4; op++)
         printf("Opzione %d %s valida\n", op, checkOpzioneMenu(op) ? 
@@ -64,6 +66,7 @@ int main() {
         printf("Il tema %d %s è stato già svolto\n", 2, 
         checkTemaGiaScelto(2, statoTemi) ? 
             "" : "non");
-    
+    */
+
     return 0;
 }

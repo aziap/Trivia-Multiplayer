@@ -12,11 +12,11 @@
 
 
 
-static inline char* leggiStringa(char* buffer) {
-        fgets(buffer, DIM_BUFFER, stdin);
-        int len = strcspn(buffer, "\n");
-        buffer[len] = 0;
-        return buffer;
+
+static inline char* leggiStringa(char* buffer, int dim) {
+    fgets(buffer, dim, stdin);
+    buffer[strcspn(buffer, "\n") ] = 0;
+    return buffer;
 }
 
 static inline void printFrame() {
@@ -24,7 +24,7 @@ static inline void printFrame() {
 }
 
 static inline void stampaTitolo() {
-    printf("Trivia Quiz");
+    printf("Trivia Quiz\n");
 }
 
 
