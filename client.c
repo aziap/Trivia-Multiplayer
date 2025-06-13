@@ -7,6 +7,7 @@
 #include "costanti.h"
 #include "client.h"
 #include "messaggi.h"
+#include "input_check.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +31,6 @@ int sd; // Socket descriptor per la comunicazione col server
 
 int connettiUtente(int port) {
     int server_fd;
-    char buffer[DIM_BUFFER] = {0};
     struct sockaddr_in server_addr;
 
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -57,12 +57,12 @@ int connettiUtente(int port) {
 
 void showScore(char* buffer) {
     pack(SHOW_SCORE_T, 0, 0, "", buffer);
-    // TODO: eventualmente fare qualcosa con numRet
-    int numRet = send(sd, buffer, HEADER_LEN, 0);
+    send(sd, buffer, HEADER_LEN, 0);
     memset(buffer, 0, DIM_BUFFER);
-    numRet = recv(ds, buffer, DIM_BUFFER, 0);
     // TODO: eventualmente fare qualcosa con numRead
+    int numRet = recv(sd, buffer, DIM_BUFFER, 0);
     struct Messaggio* m = unpack(buffer);
+    memset(buffer, 0, DIM_BUFFER);
     stampaClassificaClient(m->payload, m->msgLen);
     free(m);
 }
@@ -72,24 +72,25 @@ char sceltaMenu() {
     printf("Menù:\n");
     printFrame();
     for(int i = 1; i <= (sizeof(menu) / sizeof(char*)) ; i++) {
-        printf("%d - %s\n", i, menu[i]);   
+        printf("%d - %s\n", i, menu[i-1]);   
     }
-    char opt ;
-    while (1) {
-        printf("La tua scelta:\n");
+    char opt = 0;
+    while (opt != AVVIA_OPT && opt != ESCI_OPT) {
+        printf("La tua scelta: ");
         opt = getchar();
-        if (opt != AVVIA_OPT || opt != ESCI_OPT) break;
+        // Scarto eventuali caratteri successivi e il newline
+        while (getchar() != '\n' && !feof(stdin));
     }
     return opt;
 }
 
 
-struct Messaggio controlloNickname(char* buffer) {
+struct Messaggio* controlloNickname(char* buffer) {
     while(1) {
         printf("Scegli un nickname (deve essere univoco):\n");
         leggiStringa(buffer, DIM_NICK + 1);
         if (!checkNicknameFormat(buffer)) {
-            fprintf("Formato non valido: il nickname deve contenere almeno un carattere non spazio e non può superare i 15 caratteri\n");
+            printf("Formato non valido: il nickname deve contenere almeno un carattere non spazio e non può superare i 15 caratteri\n");
             continue;
         }
         char tmpNick[DIM_NICK] = {0};
@@ -97,13 +98,11 @@ struct Messaggio controlloNickname(char* buffer) {
         // Il nick ha un formato valido, lo invio al server per testare
         //      l'unicità
         pack(NICK_PROPOSITION_T, DIM_NICK, 0, tmpNick, buffer);
-        // TODO: c'è da farci qualcosa?
-        int numRet = send(sd, buffer, DIM_NICK + HEADER_LEN, 0);
+        send(sd, buffer, DIM_NICK + HEADER_LEN, 0);
         memset(buffer, 0, DIM_BUFFER);
-        numRet = recv(sd, buffer, DIM_BUFFER, 0);
+        int numRet = recv(sd, buffer, DIM_BUFFER, 0);
         // Leggo la risposta del server
         struct Messaggio* m = unpack(buffer);
-        // TODO: se NICK_UNAVAIL_T, rientro in questa funzione
         return m;
     }
 }
@@ -114,11 +113,13 @@ void scegliNickname(char* buffer) {
         esito = controlloNickname(buffer);
         if (esito->type == NICK_UNAVAIL_T) {
             printf("Il nickname scelto è già preso da un altro giocatore");
+            free(esito);
             continue;
         }
+    	break;
     }// Ho ricevuto la lista dei temi, posso proseguire
-    memccpy(buffer, esito->payload, esito->msgLen);
-    break;
+    memcpy(buffer, esito->payload, esito->msgLen);
+    free(esito);
 }
 
 // TODO: aggiornare giocatore
@@ -128,19 +129,18 @@ void scegliNickname(char* buffer) {
 void sceltaTema(char** temi, char* buffer) {
     int tema;
 
-    pritnf("Quiz disponibili\n");
+    printf("Quiz disponibili\n");
     printFrame();
     for (int i = 1; i <= NUM_TEMI; i++) {
-        printf("%d - %s\n", i, temi[i]);
+        printf("%d - %s\n", i, temi[i - 1]);
     }
     printFrame();
-    
     // Buffer di dimensione arbitraria, sufficiente a contenere un comando
-    char scelta[20] = {0}
+    char scelta[20] = {0};
     while (1) {
         printf("La tua scelta:\n");
         if (checkValoreTema(
-            tema = atoi(leggiStringa(scelta)))) 
+            tema = (uint8_t)atoi(leggiStringa(scelta, 20)))) 
         {
             if (giocatore.temiCompletati[tema - 1]) {
                 printf("Hai già completato quel quiz\n");
@@ -148,15 +148,15 @@ void sceltaTema(char** temi, char* buffer) {
             } else break;
         }
 
-        if (strcmp(ENDQUIZ, buffer) == 0) {
+        if (strcmp(ENDQUIZ, scelta) == 0) {
             // TODO: endquiz
             printf("endquiz: working on it...\n");
             endQuiz = true;
             break;
         }
-        else if (strcmp(SHOW_SCORE, buffer) == 0) {
-            // TODO: showScore()
-            printf("showScore(): working on it...\n");
+        else if (strcmp(SHOW_SCORE, scelta) == 0) {
+            // showScore(buffer);
+            printFrame();
             continue;
         }
         else {
@@ -167,11 +167,16 @@ void sceltaTema(char** temi, char* buffer) {
 
     // Il tema scelto era valido
     giocatore.temaCorrente = tema;
-    pack(THEME_CHOICE_T, 0, 0, (uint8_t)tema, buffer);
+    scelta[0] = tema;
+    
+    // DEBUG
+    // printf("tema scelto: %s\n", temi[tema-1]);
+    
+    pack(THEME_CHOICE_T, 1, 0, scelta , buffer);
     // TODO: che ci faccio?
     int numRet = send(sd, buffer, HEADER_LEN + 1, 0);
     memset(buffer, 0, HEADER_LEN + 1);
-    if (numRet = recv(sd, buffer, DIM_BUFFER, 0) == 0) {
+    if ((numRet = recv(sd, buffer, DIM_BUFFER, 0)) == 0) {
         printf("Gestione disconnessione: coming soon\n");
         return;
     }
@@ -183,7 +188,6 @@ void sceltaTema(char** temi, char* buffer) {
 
 void svolgiQuiz(char* buffer, int tema) {
     giocatore.domandaCorrente = 1;
-    char domanda[DIM_DOMANDA] = {0};
     char risposta[DIM_RISPOSTA] = {0};
     struct Messaggio* m;
     while(1) {
@@ -202,7 +206,7 @@ void svolgiQuiz(char* buffer, int tema) {
             giocatore.temaCorrente = 0;
             giocatore.domandaCorrente = 0;
             giocatore.temiCompletati[tema - 1] = true;
-            free(m)
+            free(m);
             break;
         }
 
@@ -214,7 +218,8 @@ void svolgiQuiz(char* buffer, int tema) {
             // Fai il check per il comando
             if (strcmp(risposta, SHOW_SCORE) == 0) {
                 //  TODO: showScore();
-                printf("showScore(): working on it...\n");
+                showScore(buffer);
+                printFrame();
                 continue;
             }
             if (strcmp(risposta, ENDQUIZ) == 0) {
@@ -236,22 +241,22 @@ void svolgiQuiz(char* buffer, int tema) {
     } // END loop domanda - risposta
 }
 
-
+/*
 int main() {
-    char scelta = sceltaMenu();
-    printf("%s\n", scelta);
+    char* temi[] = {"don quixote sounds", "fanfiction lingo"};
+    char buffer[DIM_BUFFER] = {0};
+    sceltaTema(temi, buffer);
 }
+*/
 
 
-int veroMain(int argc, char* argv[]) {
-    
+int main(int argc, char* argv[]) {
     if (argc < 2){
         printf("Numero di argomenti insufficiente. Attesa la porta in ascolto del server.\n");
         return 0;
     }
 
-    
-    // Stampa menù iniziale (LOOP)
+    // Stampa menù iniziale
 
     // Leggi opzione
     //  se ESCI, return
@@ -307,14 +312,14 @@ int veroMain(int argc, char* argv[]) {
 
             
     while(1) { 
-        /*
+        
         int numReceived = recv(server_fd, buffer, DIM_BUFFER, 0);
         if (numReceived <= 0) {
             printf("Connessione chiusa dal server\n");
             break;
         }
         buffer[numReceived] = '\0';
-        */
+        
 
         // Gestisci risposta del server
 
@@ -329,3 +334,4 @@ int veroMain(int argc, char* argv[]) {
     close(sd);
     return 0;
 }
+

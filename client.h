@@ -20,7 +20,7 @@ static inline char* leggiStringa(char* buffer, int dim) {
 }
 
 static inline void printFrame() {
-    printf("+++++++++++++++++\n")
+    printf("+++++++++++++++++\n");
 }
 
 static inline void stampaTitolo() {
