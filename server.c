@@ -129,24 +129,26 @@ int main() {
         if (FD_ISSET(listener, &readfd)) {
             if ((newfd = accept(listener, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0) {
                 perror("Accept fallito");
-                // TODO: close all
+                closeAll(listener, client_socket, &numclient);
                 exit(EXIT_FAILURE);
             }
             debug("Nuova connessione stabilita. Socket: %d\n", newfd);
-
-            // TODO: gestire il caso di massimo numero di giocatori raggiunto
         }
 
-
-        // Imposto il socket come non bloccante
-        fcntl(newfd, F_SETFL, O_NONBLOCK);
-        // Lo inserisco nell'array dei client socket e nel set master 
-        FD_SET(newfd, &master);
-        if (maxfd < newfd) maxfd = newfd;
-        client_socket[numclient++] = newfd;
-
-        // TODO: dire al glh di aggiungere una entry con un nuovo giocatore (per ora a NULL) nell'indice
-        //  oppure no? registro un giocatore solo quando sceglie un nick
+        if (numclient < MAX_CLIENTS) {
+            // Imposto il socket come non bloccante
+            fcntl(newfd, F_SETFL, O_NONBLOCK);
+            // Lo inserisco nell'array dei client socket e nel set master 
+            FD_SET(newfd, &master);
+            if (maxfd < newfd) maxfd = newfd;
+            client_socket[numclient++] = newfd;
+        }
+        // Se ho raggiunto il numero massimo di giocatori, mando un messaggio
+        //      all'utente per avvisarlo, e chiudo la connessione
+        pack(MAX_CLI_REACH_T, 0, 0, "", buffer);
+        send(newfd, buffer, HEADER_LEN, 0);
+        close(newfd);
+        memset(buffer, 0, HEADER_LEN);
 
         int sd;
         // Controllo se ci sono messaggi dai client connessi
@@ -170,20 +172,45 @@ int main() {
                     disconnettiClient(i, client_socket, &numclient, &master);
                     continue;
                 }
+                // Errore critico
                 if (numReceived < 0 
                     && errno != EWOULDBLOCK 
-                    && errno != EWOULDBLOCK 
-                    && errno != EINTR ) 
-                {
+                    && errno != EAGAIN 
+                    && errno != EINTR 
+                ) {
                     perror("recv() failed:");
                     closeAll(listener, client_socket, &numclient);
                     exit(EXIT_FAILURE);
                 }
-                if (numReceived < 0) continue;
-                
+                // 
+                if (numReceived < 0) {
+                    // L'errore non era critico
+                    errno = 0;
+                    continue; 
+                } 
                 // C'è un nuovo messaggio!
+                int toSend = 0;
+                int result = gestisciMessaggio(sd, buffer, &toSend);
+                if (result == OK) {
+                    if (send(sd, buffer, toSend, 0) == -1) {
+                        perror("Errore nella send()");
+                        errno = 0;
+                        disconnettiClient(sd, client_socket, &numclient, &master);
+                    }
+                    memset(buffer, 0, toSend);
+                    continue;
+                }
+                
+                if (result == DISCONNECT) {
+                    disconnettiClient(sd, client_socket, &numclient, &master);
+                    continue;
+                }
+                // c'è stato un errore critico
+                closeAll(listener, client_socket, &numclient);
+                exit(EXIT_FAILURE);
 
                 // DEBUG
+                /*
                 debug("Newline at %d\n", strcspn(buffer, "\n"));
                 
                 buffer[strcspn(buffer, "\n")] = 0;
@@ -191,6 +218,7 @@ int main() {
                 debug("Il client dice: %s\n", buffer);
                 char* str ="Yo";
                 send(sd, str, sizeof(str), 0);
+                */
                 // END DEBUG
             }
         } // END for(;;) - handling ready client sockets 

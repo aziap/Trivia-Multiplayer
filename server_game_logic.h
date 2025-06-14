@@ -173,6 +173,7 @@ static inline int gestisciRispostaQuiz(char* rispostaGiocatore, struct Giocatore
 //      nello stesso buffer
 // @param sd: descrittore del socket dal quale è stato ricevuto il messaggio dal client
 // @param buffer: buffer che contiene il messaggio
+// @param toSend: indirizzo di un intero in cui salvare numero di byte da inviare al client
 // @returns int codice che il chiamante legge per determinare la
 //      prossima azione: 
 //      - ERROR (-1) se si è verificato un problema critico, come un bug,
@@ -181,7 +182,7 @@ static inline int gestisciRispostaQuiz(char* rispostaGiocatore, struct Giocatore
 //        il messaggio contiene un messaggio imprevisto, imputabile ad un errore nel client
 //      - OK (1) altrimenti. In questo caso il buffer passato contiene il messaggio 
 //        da inviare in risposta 
-int gestisciMessaggio(int sd, char* buffer) {
+int gestisciMessaggio(int sd, char* buffer, int* toSend) {
     struct Messaggio* m = unpack(buffer); 
 
     // I controlli devono essere fatti dal chiamante, 
@@ -231,6 +232,7 @@ int gestisciMessaggio(int sd, char* buffer) {
                 return ERROR;
             }
             // Comunico al chiamante che il buffer contiene un messaggio da inviare
+            *toSend = HEADER_LEN;
             return OK;
         }
     	
@@ -285,6 +287,7 @@ int gestisciMessaggio(int sd, char* buffer) {
         // La impacchetto nel buffer
         if (pack(RANK_T, len, 0, classifica, buffer)) {
 		    free(classifica);
+            *toSend = HEADER_LEN + len;
 		    return OK;
         }
         free(classifica);
@@ -339,6 +342,7 @@ int gestisciMessaggio(int sd, char* buffer) {
         }
         // Preparo il messaggio con la prima domanda nel buffer,
         //      con il flag FIRST_QST settato
+        *toSend = HEADER_LEN + DIM_DOMANDA;
         return pack(QUESTION_T, DIM_DOMANDA, FIRST_QST, domanda, buffer) ?
             OK : ERROR; 
     }
@@ -378,6 +382,7 @@ int gestisciMessaggio(int sd, char* buffer) {
             // Il flag NO_QST indica che il messaggio non contiene una domanda
             flags ^= NO_QST;
             debug("Era l'ultima domanda, campo flag: %u\n", flags);
+            *toSend = HEADER_LEN;
             return pack(QUESTION_T, 0, flags, "", buffer) ? OK : ERROR;
         }
         
@@ -387,6 +392,7 @@ int gestisciMessaggio(int sd, char* buffer) {
         if (!prelevaRiga(g->temaCorrente, g->domandaCorrente, domanda, DIM_DOMANDA, "./domande.txt")) {
             return ERROR;
         }
+        *toSend = HEADER_LEN + DIM_DOMANDA;
         return pack(QUESTION_T, DIM_DOMANDA, FIRST_QST, domanda, buffer) ?
             OK : ERROR; 
     }

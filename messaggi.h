@@ -114,11 +114,12 @@ bool pack(msg_t type, msgsize_t len, flag_t flags, char* payload, char* buffer) 
     buffer[offset] = flags;
     offset += sizeof(flag_t);
 
-	// Copio il payload
-    memcpy(buffer + offset, payload, len);
-    debug("Primo carattere del payload: %c\n", buffer[offset]);
-    buffer[offset + len] = '\0';
-
+    if (len != 0) {    
+        // Copio il payload
+        memcpy(buffer + offset, payload, len);
+        debug("Primo carattere del payload: %c\n", buffer[offset]);
+        buffer[offset + len] = '\0';
+    }
     return true;  
 }
 
@@ -155,10 +156,12 @@ struct Messaggio* unpack(char *buffer) {
             exit(EXIT_FAILURE);
         }
         memcpy(m->payload, buffer + offset, m->msgLen);
+    } else {
+        m->payload = "";
     }
 
     // Ho salvato le informazioni del messaggio, posso pulire il buffer
-    memset(buffer, 0, DIM_BUFFER);
+    memset(buffer, 0, HEADER_LEN + m->msgLen);
     debug("in unpack()\ncampi del messaggio:\n- tipo: %u\n- flag: %u\n- len: %d\n- payload: %s\n",
     m->type, m->flags, m->msgLen, m->payload); 
     return m;
