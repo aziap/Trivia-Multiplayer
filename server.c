@@ -33,7 +33,7 @@ static inline void disconnettiClient(int index, int *sdArr, int *nextSd, fd_set 
     // DEBUG
     int sd = sdArr[index];
     
-    close(sdArr[index]);
+    close(sd);
     // Sposto l'ultimo sd nella posizione appena liberata
     //      e decremento il numero di client
     sdArr[index] = sdArr[--(*nextSd)];
@@ -41,13 +41,13 @@ static inline void disconnettiClient(int index, int *sdArr, int *nextSd, fd_set 
     // Rimuovo l'sd dal set master
     debug("Rimuovo il sd dal master set\n");
     FD_CLR(sd, master);
-
+	debug("Numero di client connessi: %d\n", *nextSd);
     rimuoviGiocatore(sd);
 }
 
 static inline void closeAll( int listenerSd, int* sdArr, int* nextSd) {
     while(*nextSd > 0) {
-        rimuoviGiocatore(sdArr[--(*nextSd)])
+        rimuoviGiocatore(sdArr[--(*nextSd)]);
         close(sdArr[*nextSd]);
     }
     close((listenerSd));
@@ -133,27 +133,31 @@ int main() {
                 exit(EXIT_FAILURE);
             }
             debug("Nuova connessione stabilita. Socket: %d\n", newfd);
-        }
 
-        if (numclient < MAX_CLIENTS) {
-            // Imposto il socket come non bloccante
-            fcntl(newfd, F_SETFL, O_NONBLOCK);
-            // Lo inserisco nell'array dei client socket e nel set master 
-            FD_SET(newfd, &master);
-            if (maxfd < newfd) maxfd = newfd;
-            client_socket[numclient++] = newfd;
+		    if (numclient < MAX_CLIENTS) {
+		        // Imposto il socket come non bloccante
+		        fcntl(newfd, F_SETFL, O_NONBLOCK);
+		        // Lo inserisco nell'array dei client socket e nel set master 
+		        FD_SET(newfd, &master);
+		        if (maxfd < newfd) maxfd = newfd;
+		        client_socket[numclient++] = newfd;
+		        pack(CONNECT_OK_T, 0, 0, "", buffer);
+		        send(newfd, buffer, HEADER_LEN, 0);
+				memset(buffer, 0, HEADER_LEN);
+		    } else {
+				// Se ho raggiunto il numero massimo di giocatori, mando un messaggio
+				//      all'utente per avvisarlo, e chiudo la connessione
+				pack(MAX_CLI_REACH_T, 0, 0, "", buffer);
+				send(newfd, buffer, HEADER_LEN, 0);
+				close(newfd);
+				FD_CLR(newfd, &master);
+				memset(buffer, 0, HEADER_LEN);
+			}
         }
-        // Se ho raggiunto il numero massimo di giocatori, mando un messaggio
-        //      all'utente per avvisarlo, e chiudo la connessione
-        pack(MAX_CLI_REACH_T, 0, 0, "", buffer);
-        send(newfd, buffer, HEADER_LEN, 0);
-        close(newfd);
-        memset(buffer, 0, HEADER_LEN);
-
         int sd;
         // Controllo se ci sono messaggi dai client connessi
         for (int i = 0; i < numclient; i++) {
-            
+            debug("Numero di utenti connessi: %d\n", numclient);
             debug("Controllo se ci sono nuovi messaggi\n");
             
             sd = client_socket[i];
@@ -178,7 +182,7 @@ int main() {
                     && errno != EAGAIN 
                     && errno != EINTR 
                 ) {
-                    perror("recv() failed:");
+                    perror("recv() failed");
                     closeAll(listener, client_socket, &numclient);
                     exit(EXIT_FAILURE);
                 }
@@ -189,38 +193,30 @@ int main() {
                     continue; 
                 } 
                 // C'è un nuovo messaggio!
-                int toSend = 0;
+                int toSend = -1;
                 int result = gestisciMessaggio(sd, buffer, &toSend);
                 if (result == OK) {
-                    if (send(sd, buffer, toSend, 0) == -1) {
+                	debug("Sto per inviare una risposta a %d\n", client_socket[i]);
+                	int ret;
+                    if ((ret = send(sd, buffer, toSend, 0)) == -1) {
                         perror("Errore nella send()");
                         errno = 0;
-                        disconnettiClient(sd, client_socket, &numclient, &master);
+                        disconnettiClient(i, client_socket, &numclient, &master);
                     }
+                    debug("Inviati %d byte\n", ret);
                     memset(buffer, 0, toSend);
                     continue;
                 }
                 
                 if (result == DISCONNECT) {
-                    disconnettiClient(sd, client_socket, &numclient, &master);
+                    disconnettiClient(i, client_socket, &numclient, &master);
+                    debug("Disconnetto il client del socket %d\n", client_socket[i]);
                     continue;
                 }
                 // c'è stato un errore critico
                 closeAll(listener, client_socket, &numclient);
                 exit(EXIT_FAILURE);
-
-                // DEBUG
-                /*
-                debug("Newline at %d\n", strcspn(buffer, "\n"));
-                
-                buffer[strcspn(buffer, "\n")] = 0;
-                
-                debug("Il client dice: %s\n", buffer);
-                char* str ="Yo";
-                send(sd, str, sizeof(str), 0);
-                */
-                // END DEBUG
-            }
+            } // END gestione socket pronto
         } // END for(;;) - handling ready client sockets 
     } // END while() - main loop
 

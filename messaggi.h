@@ -164,6 +164,7 @@ struct Messaggio* unpack(char *buffer) {
     memset(buffer, 0, HEADER_LEN + m->msgLen);
     debug("in unpack()\ncampi del messaggio:\n- tipo: %u\n- flag: %u\n- len: %d\n- payload: %s\n",
     m->type, m->flags, m->msgLen, m->payload); 
+    debug("unpack() ok\n");
     return m;
 }
 

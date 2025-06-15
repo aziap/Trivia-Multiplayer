@@ -10,17 +10,17 @@
 #endif
 #include "debug.h"
 
-
-
-
+// Legge un input dell'utente, fino ad un numero massimo di caratteri.
+// @param buffer: buffer in cui inserire l'input letto
+// @param dim: quanti caratteri leggere al più
 static inline char* leggiStringa(char* buffer, int dim) {
     fgets(buffer, dim, stdin);
-    buffer[strcspn(buffer, "\n") ] = 0;
+    buffer[strcspn(buffer, "\n")] = 0; 
     return buffer;
 }
 
 static inline void printFrame() {
-    printf("+++++++++++++++++\n");
+    printf("++++++++++++++++++++\n");
 }
 
 static inline void stampaTitolo() {

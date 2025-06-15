@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-char* menu[]= {
+char* menu[] = {
     "Comincia una sessione di Trivia", 
     "Esci"
 };
@@ -67,8 +67,11 @@ int connettiUtente(int port) {
     return server_fd;
 }
 
+// Fa la recv() e gestisce i casi di errore
+// @returns numero di byte ricevuti
 static inline int attendiMessaggio(char* buffer) {
     int ricevuti = recv(sd, buffer, DIM_BUFFER, 0);
+    debug("Sono uscito dalla recv()\n");
     if (ricevuti == 0) {
         printf("Connessione chiusa dal server\n");
         close(sd);
@@ -85,7 +88,11 @@ void showScore(char* buffer) {
     send(sd, buffer, HEADER_LEN, 0);
     memset(buffer, 0, DIM_BUFFER);
     // TODO: eventualmente fare qualcosa con numRead
-    int numRet = recv(sd, buffer, DIM_BUFFER, 0);
+    // TODO: sostituire recv con attendiMessaggio() or smt
+    if (attendiMessaggio(buffer) <= 0) {
+    	ending = true;
+    	return;
+    }
     struct Messaggio* m = unpack(buffer);
     memset(buffer, 0, DIM_BUFFER);
     stampaClassificaClient(m->payload, m->msgLen);
@@ -94,6 +101,7 @@ void showScore(char* buffer) {
 
 
 char sceltaMenu() {
+	printFrame();
     printf("Menù:\n");
     printFrame();
     for(int i = 1; i <= (sizeof(menu) / sizeof(char*)) ; i++) {
@@ -112,25 +120,53 @@ char sceltaMenu() {
 // Controlla la validità del formato del nickname.
 // Se il formato è valido invia un messaggio al server per testare l'unicità.
 // Da usare in loop finché il nickname non viene accettato dal server
-// @return struct Messaggio* esito del controllo di unicità 
+// @returns struct Messaggio* esito del controllo di unicità 
 struct Messaggio* controlloNickname(char* buffer) {
+	bool newInputFlag = true;
+	int nickLen;
     while(1) {
+    	printFrame();
         printf("Scegli un nickname (deve essere univoco):\n");
         leggiStringa(buffer, DIM_NICK + 1);
-        if (!checkNicknameFormat(buffer)) {
+        if ((nickLen = checkNicknameFormat(buffer)) == 0
+        || (nickLen > 0 && !newInputFlag)) {
+        	if(nickLen > 0) {
+        		debug("caratteri letti:%s La prossima chiamata di leggiStringa() leggerà un nuovo input\n", buffer);
+        	}
             printf("Formato non valido: il nickname deve contenere almeno un carattere non spazio e non può superare i 15 caratteri\n");
+            newInputFlag = true;
             continue;
         }
+        if (nickLen == -1) {
+        	debug("Nick troppo lungo: %s. La prossima chiamata di leggiStringa() leggerà i byte rimanenti in stdin del vecchio input\n", buffer); 
+        	newInputFlag = false; 
+        	continue;
+        }
+        /*
+        if (nickLen > 0 && !newInputFlag) {
+        	debug("caratteri letti:%s La prossima chiamata di leggiStringa() leggerà un nuovo input\n", buffer);
+        	printf("Formato non valido: il nickname deve contenere almeno un carattere non spazio e non può superare i 15 caratteri\n");
+        	newInputFlag = true;
+        	continue;
+        }
+        */
+        
         char tmpNick[DIM_NICK] = {0};
         strncpy(tmpNick, buffer, DIM_NICK);
         // Il nick ha un formato valido, lo invio al server per testare
         //      l'unicità
         pack(NICK_PROPOSITION_T, DIM_NICK, 0, tmpNick, buffer);
-        send(sd, buffer, DIM_NICK + HEADER_LEN, 0);
+        if (send(sd, buffer, DIM_NICK + HEADER_LEN, 0) == -1) {
+        	perror("Errore nella send()");
+        	exit(EXIT_FAILURE);
+        }
+        debug("nick proposto inviato\n");
         memset(buffer, 0, DIM_BUFFER);
         if (attendiMessaggio(buffer) <= 0) return NULL; 
-        // // Leggo la risposta del server
+        // Leggo la risposta del server
+        debug("Risposta ricevuta\n");
         struct Messaggio* m = unpack(buffer);
+        debug("Payload del messaggio: %s\n", m->payload);
         return m;
     }
 }
@@ -148,36 +184,38 @@ void scegliNickname(char* buffer) {
             return;
         }
         if (esito->type == NICK_UNAVAIL_T) {
-            printf("Il nickname scelto è già preso da un altro giocatore");
+            printf("Il nickname scelto è già preso da un altro giocatore\n");
             free(esito);
             continue;
+        }
+        if (esito->type != THEME_LIST_T) {
+        	printf("Errore critico: tipo del messaggio imprevisto\n");
+        	free(esito);
+        	close(sd);
+        	exit(EXIT_FAILURE);
         }
     	break;
     }// Ho ricevuto la lista dei temi, posso proseguire
     memcpy(buffer, esito->payload, esito->msgLen);
+    debug("Ho ricevuto la lista dei temi: %s\n", esito->payload);
     free(esito);
 }
-
-// TODO: aggiornare giocatore
-
-// TODO: Estrarre la lista dei temi dal payload del messaggio e formattarla in un array di stringhe
 
 // Stampa la lista dei temi e attende la scelta del giocatore
 // Può settare il flag ending
 // Se all'uscita il flag ending non è settato, il buffer contiene la prima
 //      domanda del quiz
-int sceltaTema(char** temi, char* buffer) {
+int sceltaTema(char temi[NUM_TEMI][DIM_TEMA], char* buffer) {
     int tema;
-
-    printf("Quiz disponibili\n");
-    printFrame();
-    for (int i = 1; i <= NUM_TEMI; i++) {
-        printf("%d - %s\n", i, temi[i - 1]);
-    }
-    printFrame();
     // Buffer di dimensione arbitraria, sufficiente a contenere un comando
     char scelta[20] = {0};
     while (1) {
+		printFrame();
+		printf("Quiz disponibili:\n");
+		printFrame();
+		for (int i = 1; i <= NUM_TEMI; i++) {
+		    printf("%d - %s\n", i, temi[i - 1]);
+		}
         printf("La tua scelta:\n");
         if (checkValoreTema(
             tema = (uint8_t)atoi(leggiStringa(scelta, 20)))
@@ -190,7 +228,7 @@ int sceltaTema(char** temi, char* buffer) {
 
         if (strcmp(ENDQUIZ, scelta) == 0) {
             endquiz(buffer);
-            break;
+            return 0;
         }
         else if (strcmp(SHOW_SCORE, scelta) == 0) {
             showScore(buffer);
@@ -201,14 +239,10 @@ int sceltaTema(char** temi, char* buffer) {
             printf("Scelta non valida\n");
             continue;
         }
-    }
+    } // END loop scelta tema
     // Il tema scelto era valido
     giocatore.temaCorrente = tema;
-    scelta[0] = tema;
-    
-    // DEBUG
-    // printf("tema scelto: %s\n", temi[tema-1]);
-    
+    scelta[0] = tema;   
     pack(THEME_CHOICE_T, 1, 0, scelta , buffer);
     // TODO: che ci faccio?
     int numRet = send(sd, buffer, HEADER_LEN + 1, 0);
@@ -237,6 +271,7 @@ void svolgiQuiz(char* buffer, int tema) {
         // Leggere i flag:
         // Se non è la prima domanda, stampare l'esito
         if (!(m->flags & FIRST_QST)) {
+        	debug("Stampo l'esito della risposta precedente\n");
             printf("Risposta %s\n", m->flags & PREV_ANS_CORRECT ? "corretta" : "sbagliata");
         }
 
@@ -265,13 +300,13 @@ void svolgiQuiz(char* buffer, int tema) {
                 endquiz(buffer);
                 break;
             }
+            ++giocatore.domandaCorrente;
             // ImpacchettO la risposta e la mandao al server
             pack(ANSWER_T, DIM_RISPOSTA, 0, risposta, buffer);
             send(sd, buffer, DIM_RISPOSTA + HEADER_LEN, 0);
             memset(buffer, 0, DIM_RISPOSTA + HEADER_LEN);
             if (attendiMessaggio(buffer) <= 0) {
                 ending = true;
-                free(m);
             }
             break;  // Esco e stampo la domanda successiva
         } // END loop gestione risposta
@@ -281,14 +316,18 @@ void svolgiQuiz(char* buffer, int tema) {
 }
 
 
-
+// ******************************
+//      MAIN
+// ******************************
 int main(int argc, char* argv[]) {
     if (argc < 2){
-        printf("Numero di argomenti insufficiente. Attesa la porta in ascolto del server.\n");
+        printf("Numero di argomenti insufficiente. Specificare la porta in ascolto del server.\n");
         return 0;
     }
 
     while(1) {
+    	ending = false;
+    	stampaTitolo();
         // Stampa menù iniziale
         char opzione = sceltaMenu();
         if (opzione == ESCI_OPT) {
@@ -300,15 +339,17 @@ int main(int argc, char* argv[]) {
         sd = connettiUtente(port);
 
         char buffer[DIM_BUFFER] = {0};
-
+		debug("Connessione col server riuscita\n");
         // Aspetto il primo messaggio del server
         // ******************************
-        //      Primo messaggio server ("max_cli" o "conn_ok")
+        //      Primo messaggio server 
         // ******************************
-        struct Messaggio* m = attendiMessaggio(buffer);
-        if (m == NULL) continue;    // Torno al menù di avvio
+        if (attendiMessaggio(buffer) <= 0) {			
+			continue;    // Torno al menù di avvio
+        }
+        struct Messaggio* m = unpack(buffer);
         if (m->type == MAX_CLI_REACH_T) {
-            printf("Siamo spiacenti, ma numero massimo di utenti connessi è stato raggiunto.\nRiprova più tardi.\n");
+            printf("Siamo spiacenti, il numero massimo di utenti connessi è stato raggiunto.\nRiprova più tardi.\n");
             free(m);
             close(sd);
             continue;
@@ -316,11 +357,14 @@ int main(int argc, char* argv[]) {
 
         scegliNickname(buffer);
         if (ending) continue;   // torno al manù iniziale
-
+		
+		debug("ScegliNickname() ok\n");
+		
         // Il buffer contiene la lista dei temi, la estraggo e la elaboro
         char listaTemi[NUM_TEMI][DIM_TEMA];
         int daCopiare = 0;  // Numero di caratteri da copiare 
         int index = 0;
+        debug("Temi nel buffer: %s\n", buffer); 
         for (int i = 0; i < NUM_TEMI; i++) {
             // Escludo il carattere che indica il numero del tema e il separatore
             daCopiare = strcspn(buffer+ index, "\n") - 2;   
@@ -329,11 +373,13 @@ int main(int argc, char* argv[]) {
             listaTemi[i][daCopiare] = 0;
             debug("%s\n", listaTemi[i]);
         }
+        
+        debug("copia lista temi ok\n");
 
         memset(buffer, 0, NUM_TEMI * (DIM_TEMA + 2));
 
         // ******************************
-        //      LOOP scelta tema
+        //      Sessione Trivia
         // ******************************
         while(1) {
             giocatore.temaCorrente = sceltaTema(listaTemi, buffer);
@@ -345,30 +391,5 @@ int main(int argc, char* argv[]) {
     
     close(sd);
     return 0;
-
-    /*       
-    while(1) { 
-        
-        int numReceived = recv(server_fd, buffer, DIM_BUFFER, 0);
-        if (numReceived <= 0) {
-            printf("Connessione chiusa dal server\n");
-            break;
-        }
-        buffer[numReceived] = '\0';
-        
-
-        // Gestisci risposta del server
-
-        printf("Messaggio: ");
-        leggiStringa(buffer, DIM_BUFFER);
-
-        // Invio il messaggio
-
-        send(server_fd, buffer, len, 0);
-        break;
-    }
-    close(sd);
-    return 0;
-    */
 }
 

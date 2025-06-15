@@ -20,19 +20,20 @@ static inline bool checkStringaNonVuota(char* str) {
 	return i < strlen(str); 
 }
 
-// controllo che il nickname non sia vuoto o troppo lungo
-static inline bool checkNicknameFormat(char* nick){
+// Controllo che il nickname non sia vuoto o troppo lungo
+// @returns il numero di caratteri validi letti, -1 se il nickname è troppo lungo
+static inline int checkNicknameFormat(char* nick){
 	// Controllo che ci sia almeno un carattere non spazio
     if (!checkStringaNonVuota(nick)) {
         debug("nessun carattere valido trovato\n");
-        return false;
+        return 0;
     }
-
-    if (strlen(nick) > DIM_NICK - 1) {
+	int len = strlen(nick); 
+    if (len > DIM_NICK - 1) {
         debug("Nickname troppo lungo\n");
-        return false;
+        return -1;
     }
-    return true;
+    return len;
 }
 
 // Controllo l'opzione scelta inserita al menù di avvio

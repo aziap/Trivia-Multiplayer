@@ -44,11 +44,12 @@ struct Giocatore* giocatori[MAX_CLIENTS];
 // Dato il socket descriptor, restituisce l'indice del giocatore
 //      nell'array giocatori[]
 static inline int getGiocatore(int sd) {
+    if (numGiocatori <= 0) return -1;
     int index = 0;
-    while (index <= numGiocatori && sd != giocatori[index]->sd) {
+    while (index < numGiocatori && sd != giocatori[index]->sd) {
         ++index;
     }
-    return index <= numGiocatori ? index : -1;
+    return index < numGiocatori ? index : -1;
 }
 
 
@@ -60,7 +61,7 @@ struct Giocatore* registraGiocatore(char* nick, int sd) {
 	// Il controllo sul numero di giocatori massimo deve essere fatto
     //      dall chiamante, gestisco il caso come un errore critico
     if (numGiocatori >= MAX_CLIENTS) {
-        debug("Errore in registraGiocatore: numero di giocatori massimo raggiunto\n");
+        printf("Errore in registraGiocatore: numero di giocatori massimo raggiunto\n");
         exit(EXIT_FAILURE);
     }
 	struct Giocatore* g = malloc(sizeof(struct Giocatore));
@@ -85,7 +86,7 @@ struct Giocatore* registraGiocatore(char* nick, int sd) {
 	return g;
 }
 
-void rimuoviGiocatore(sd) {
+void rimuoviGiocatore(int sd) {
     int index = getGiocatore(sd);
     // Il giocatore corrispondente al sd non era ancora registrato
     if (index == -1) return;
@@ -109,10 +110,10 @@ void rimuoviGiocatore(sd) {
 // Controllo se esiste un giocatore registrato con un certo nickname
 // @returns true se esiste, false altrimenti
 bool checkNickPreso(char* nick) {
-    // è il primo giocatore
-    if (!numGiocatori) return false;
+    if (!numGiocatori) return false;	// è il primo giocatore
     int i = 0;
     while (i < numGiocatori && strcmp(nick, giocatori[i]->nick) != 0) {
+    	debug("in checkNickPreso(), giocatore esaminato: %s\n", giocatori[i]->nick); 
         ++i;
     }
     return i < numGiocatori;
@@ -133,7 +134,10 @@ static inline bool prelevaRiga(uint8_t tema, uint8_t numero, char* bufLinea, int
     }
     // Creo una stringa con "<tema><separatore><numero>"
     int daComparare = 3;	// Assumendo che tema e numero siano ad una cifra
-    char indiceRiga[daComparare] = {'0' + tema, SEP, '0' + numero};
+    char indiceRiga[daComparare];
+    indiceRiga[0] = '0' + tema;
+    indiceRiga[1] = SEP;
+    indiceRiga[2] = '0' + numero;
     while (fgets(bufLinea, len, target) != NULL && strncmp(bufLinea, indiceRiga, daComparare) != 0) {}
     if (ferror(target) != 0) {
         perror("Errore in prelevaRiga(), fgets()");
@@ -207,11 +211,12 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
             printf("Il giocatore con sd = %d era già registrato\n", sd);
             return DISCONNECT;
         }
+        debug("Il socket non era già presente\n");
     
         // Controllo la validità del formato.
         //      I controlli sono già stati fatti lato client, se il 
         //      formato non è valido, chiudo la connessione con il giocatore
-        if (!checkNicknameFormat(m->payload)) {
+        if (checkNicknameFormat(m->payload) < 0) {
             debug("Errore in gestisciMessaggio(): il formato del nick non è valido: %s\n", 
                 m->payload);
             free(m);
@@ -269,8 +274,9 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
         fclose(temi);
         
         listaTemi[nread] = 0;
-
+		
         debug("lista dei temi: %s\n", listaTemi);
+        *toSend = DIM_TEMA * NUM_TEMI;
         return pack(THEME_LIST_T, nread, 0, listaTemi, buffer) ? OK : ERROR;
     }
 
@@ -307,7 +313,7 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
     // ******************************
     if (m->type == THEME_CHOICE_T) {
         // Controllo se il tema è già stato scelto precedentemente
-        uint8_t t = atoi(m->payload);
+        uint8_t t = m->payload[0];
         free(m);
         if (!checkValoreTema(t)) {
             printf("Numero tema ricevuto non valido: %u\n", t);
@@ -393,7 +399,7 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
             return ERROR;
         }
         *toSend = HEADER_LEN + DIM_DOMANDA;
-        return pack(QUESTION_T, DIM_DOMANDA, FIRST_QST, domanda, buffer) ?
+        return pack(QUESTION_T, DIM_DOMANDA, flags, domanda, buffer) ?
             OK : ERROR; 
     }
 
