@@ -5,13 +5,9 @@
 #include "classifica.h"
 #include "input_check.h"
 #include "messaggi.h"
+#include "debug.h"
 
 #include <stdio.h>
-
-#ifndef DEBUG_ON
-#define DEBUG_ON 1
-#endif
-#include "debug.h"
 
 // Valori di ritorno delle funzioni che gestiscono la logica di gioco.
 //      Dicono al chiamante, in server.c, se procedere con 

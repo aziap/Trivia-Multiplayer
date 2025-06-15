@@ -5,12 +5,9 @@
 #include "input_check.h"
 #include "messaggi.h"
 
-#include <stdio.h>
-
-#ifndef DEBUG_ON
-#define DEBUG_ON 1
-#endif
 #include "debug.h"
+
+#include <stdio.h>
 
 int gestisciMessaggioServer(char* buffer) {
     

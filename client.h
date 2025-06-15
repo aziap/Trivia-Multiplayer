@@ -3,12 +3,10 @@
 
 #include "messaggi.h"
 #include "costanti.h"
+#include "debug.h"
+
 #include <stdbool.h>
 
-#ifndef DEBUG_ON
-// #define DEBUG_ON
-#endif
-#include "debug.h"
 
 // Legge un input dell'utente, fino ad un numero massimo di caratteri.
 // @param buffer: buffer in cui inserire l'input letto

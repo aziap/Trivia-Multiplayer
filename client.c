@@ -1,13 +1,13 @@
-#ifndef DEBUG_ON
-#define DEBUG_ON
-#endif
-
-#include "debug.h"
-
 #include "costanti.h"
 #include "client.h"
 #include "messaggi.h"
 #include "input_check.h"
+
+// #ifndef DEBUG_ON
+// #define DEBUG_ON
+// #endif
+
+#include "debug.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,7 +88,6 @@ void showScore(char* buffer) {
     send(sd, buffer, HEADER_LEN, 0);
     memset(buffer, 0, DIM_BUFFER);
     // TODO: eventualmente fare qualcosa con numRead
-    // TODO: sostituire recv con attendiMessaggio() or smt
     if (attendiMessaggio(buffer) <= 0) {
     	ending = true;
     	return;
@@ -130,7 +129,7 @@ struct Messaggio* controlloNickname(char* buffer) {
         leggiStringa(buffer, DIM_NICK + 1);
         if ((nickLen = checkNicknameFormat(buffer)) == 0
         || (nickLen > 0 && !newInputFlag)) {
-        	if(nickLen > 0) {
+        	if (nickLen > 0) {
         		debug("caratteri letti:%s La prossima chiamata di leggiStringa() leggerà un nuovo input\n", buffer);
         	}
             printf("Formato non valido: il nickname deve contenere almeno un carattere non spazio e non può superare i 15 caratteri\n");
@@ -142,14 +141,6 @@ struct Messaggio* controlloNickname(char* buffer) {
         	newInputFlag = false; 
         	continue;
         }
-        /*
-        if (nickLen > 0 && !newInputFlag) {
-        	debug("caratteri letti:%s La prossima chiamata di leggiStringa() leggerà un nuovo input\n", buffer);
-        	printf("Formato non valido: il nickname deve contenere almeno un carattere non spazio e non può superare i 15 caratteri\n");
-        	newInputFlag = true;
-        	continue;
-        }
-        */
         
         char tmpNick[DIM_NICK] = {0};
         strncpy(tmpNick, buffer, DIM_NICK);
@@ -340,7 +331,6 @@ int main(int argc, char* argv[]) {
 
         char buffer[DIM_BUFFER] = {0};
 		debug("Connessione col server riuscita\n");
-        // Aspetto il primo messaggio del server
         // ******************************
         //      Primo messaggio server 
         // ******************************

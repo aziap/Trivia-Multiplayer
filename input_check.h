@@ -1,12 +1,9 @@
 #ifndef INPUT_CHECK_H
 #define INPUT_CHECK_H
 
-#ifndef DEBUG_ON
-#define DEBUG_ON
-#endif
+#include "costanti.h"
 #include "debug.h"
 
-#include "costanti.h"
 #include <string.h>
 #include <stdbool.h>
 

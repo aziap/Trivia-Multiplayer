@@ -13,20 +13,15 @@
 #include <fcntl.h>
 
 // DEBUG
-#ifndef DEBUG_ON
-#define DEBUG_ON
-#endif
+// #ifndef DEBUG_ON
+// #define DEBUG_ON
+// #endif
 #include "debug.h"
 // END DEBUG
 
 #define PORT 1919 
 #define MAX_BACKLOG 128 // Numero massimo di connessioni in attesa 
 
-
-/**
- * read -> recv
- * send -> write
-*/
 
 
 static inline void disconnettiClient(int index, int *sdArr, int *nextSd, fd_set *master) {

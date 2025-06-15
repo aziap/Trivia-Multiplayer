@@ -1,12 +1,9 @@
 #ifndef MESSAGGI_H
 #define MESSAGGI_H
 
-#ifndef DEBUG_ON
-#define DEBUG_ON 1
-#endif 
+#include "costanti.h"
 #include "debug.h"
 
-#include "costanti.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -55,12 +52,12 @@ TIPO: msg_t (1 Byte)
         e i controlli da effettuare sul payload.
 DIM: msgsize_t (2 Byte)
     Dimensione del payload.
-FLAG: uint8_t (1 Byte)
+FLAG: flag_t (1 Byte)
     Significativo nei messaggi che contengono le domande del quiz per dare al processo client
         quali informazioni aggiuntive stampare e se farlo. 
         Ad esempio, uno dei flag indica l'esito della risposta precedente del quiz;
         un altro indica se è la prima domanda, ecc (TODO: espandere).
-PAYLOAD: unsigned char[] (0 - 2023 Byte)
+PAYLOAD: char[] (0 - 1020 Byte)
     Contenuto del paccketto. Nei messaggi del client, contiene l'input dell'utente,
         più delle informazioni di controllo aggiunte dal processo client.
         Nei messaggi del server sono i contenuti richiesti dal client.
