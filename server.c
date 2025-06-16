@@ -194,20 +194,20 @@ int main() {
                     printFrame();
                     continue;
                 }
-                // Errore critico
-                if (numReceived < 0 
+				if (numReceived < 0 
                     && errno != EWOULDBLOCK 
                     && errno != EAGAIN 
                     && errno != EINTR 
                 ) {
-                    perror("recv() failed");
+					// Errore critico
+                    perror("Errore in recv()");
                     closeAll(listener, client_socket, &numclient);
                     exit(EXIT_FAILURE);
                 }
                 if (numReceived < 0) {
-                    // L'errore non era critico
-                    continue; 
-                } 
+					// Errore non critico
+					continue;
+				}
                 // C'è un nuovo messaggio
                 int toSend = -1;
                 int result = gestisciMessaggio(sd, buffer, &toSend);

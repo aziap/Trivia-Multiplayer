@@ -359,7 +359,7 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
     if (index == -1) {
         printf("Errore in gestisciMessaggio(): giocatore corrispondente al socket %d non trovato\n", sd);
         free(m);
-        return ERROR;
+        return DISCONNECT;
     }
     struct Giocatore* g = giocatori[index];
        
@@ -468,8 +468,9 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
     }
     
     // Se arrivo fin qui, il tipo del messaggio non è valido
+	// Chiudo la connessione con il client che ha inviato il messaggio
     free(m);
-    return ERROR;
+    return DISCONNECT;
 }
 
 
