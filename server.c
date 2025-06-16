@@ -189,9 +189,7 @@ int main() {
                     disconnettiClient(i, client_socket, &numclient, &master);
                     // Stampo le informazioni aggiornate sui giocatori
                     stampaPartecipanti();
-                    // putchar('\n');
                     stampaClassifica();
-                    // putchar('\n');
                     stampaQuizCompletati();
                     printFrame();
                     continue;
@@ -229,16 +227,14 @@ int main() {
                     disconnettiClient(i, client_socket, &numclient, &master);
                     debug("Disconnetto il client del socket %d\n", client_socket[i]);
                 } else {
-		            // c'è stato un errore critico
+		            // C'è stato un errore critico
 		            closeAll(listener, client_socket, &numclient);
 		            exit(EXIT_FAILURE);
                 }
                 // Stampo le informazioni aggiornate dei giocatori
                 putchar('\n');
                 stampaPartecipanti();
-                // putchar('\n');
                 stampaClassifica();
-                // putchar('\n');
                 stampaQuizCompletati();
                 printFrame();
             } // END gestione socket pronto
