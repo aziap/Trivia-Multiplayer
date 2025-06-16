@@ -206,7 +206,6 @@ int main() {
                 }
                 if (numReceived < 0) {
                     // L'errore non era critico
-                    errno = 0;
                     continue; 
                 } 
                 // C'è un nuovo messaggio
@@ -217,7 +216,6 @@ int main() {
                 	int ret;
                     if ((ret = send(sd, buffer, toSend, 0)) == -1) {
                         perror("Errore nella send()");
-                        errno = 0;
                         disconnettiClient(i, client_socket, &numclient, &master);
                     }
                     debug("Inviati %d byte\n", ret);
