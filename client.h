@@ -5,8 +5,7 @@
 #include "costanti.h"
 #include "debug.h"
 
-#include <stdbool.h>
-
+// #include <stdbool.h>
 
 // Legge un input dell'utente, fino ad un numero massimo di caratteri.
 // @param buffer: buffer in cui inserire l'input letto
@@ -16,15 +15,6 @@ static inline char* leggiStringa(char* buffer, int dim) {
     buffer[strcspn(buffer, "\n")] = 0; 
     return buffer;
 }
-
-static inline void printFrame() {
-    printf("++++++++++++++++++++\n");
-}
-
-static inline void stampaTitolo() {
-    printf("Trivia Quiz\n");
-}
-
 
 
 void stampaClassificaClient(char *msgClassifica, msgsize_t len) {
@@ -49,8 +39,6 @@ void stampaClassificaClient(char *msgClassifica, msgsize_t len) {
         }
         putchar('\n');
     }
-
 }
-
 
 #endif

@@ -17,6 +17,8 @@
 #define DISCONNECT 0    // Dico al chiamante di chiudere la connessione con l'utente
 #define OK 1            // Il buffer contiene un messaggio da inviare
 
+int numGiocatori = 0;
+
 // Contiene lo stato corrente di un giocatore
 // @param nick: nickname con cui il giocatore si è registrato.
 // @param temaCorrente: id del tema del quiz che il giocatore sta giocando attualmente.
@@ -32,10 +34,7 @@ struct Giocatore {
 	bool statoTemi[NUM_TEMI];
 };
 
-int numGiocatori = 0;
-
 struct Giocatore* giocatori[MAX_CLIENTS];
-
 
 // Dato il socket descriptor, restituisce l'indice del giocatore
 //      nell'array giocatori[]
@@ -47,7 +46,6 @@ static inline int getGiocatore(int sd) {
     }
     return index < numGiocatori ? index : -1;
 }
-
 
 // NOTA: questa funzione assume che la stringa passata sia corretta secondo i parametri richiesti. 
 //		 I controlli vanno fatti in un'altra funzione.
@@ -163,6 +161,64 @@ static inline int gestisciRispostaQuiz(char* rispostaGiocatore, struct Giocatore
     return strncasecmp(rispostaCorretta + 4, rispostaGiocatore, strlen(rispostaCorretta)) != 0 ? 0 : 1;
 }
 
+// TODO: commentare
+int leggiListaTemi(char* buffer) {
+    FILE* temi; 
+    if ((temi = fopen("./temi.txt","r")) == NULL) {
+        perror("Errore nell'apertura di temi.txt");
+        return -1;
+	}
+	size_t nread = fread(buffer, sizeof(char), DIM_TEMA * NUM_TEMI, temi);
+        // Se non ho letto tutto il file o se c'è stato un problema nella lettura, restituisco il codice di errore
+    if (ferror(temi) != 0) {
+        perror("Errore nella lettura di temi.txt");
+        fclose(temi);
+        return -1;
+    }
+    
+    if (feof(temi) == 0) {
+        printf("Errore in gestisciMessaggio(): lo spazio allocato per la lettura dei temi è insufficiente\n");
+        fclose(temi);
+        return -1;
+    }
+    // La lettura ha avuto successo
+    fclose(temi);
+    
+    buffer[nread] = 0;
+	
+    debug("lista dei temi: %s\n", buffer);
+    return nread;
+}
+
+int confrontaNome(const void* a, const void* b) {
+	struct Giocatore* pa = *(struct Giocatore**)a;
+	struct Giocatore* pb = *(struct Giocatore**)b;
+	return strcmp(pa->nick, pb->nick);
+}
+
+static inline void stampaPartecipanti() {
+	printf("Partecipanti (%d)\n", numGiocatori);
+	if (numGiocatori) {
+		qsort(giocatori, numGiocatori, sizeof(struct Giocatore*), confrontaNome);
+		for (int i = 0; i < numGiocatori; i++) {
+			printf("- %s\n", giocatori[i]->nick);
+		}
+	}
+	putchar('\n');
+}
+
+static inline void stampaQuizCompletati() {
+	for (int i = 0; i < NUM_TEMI; i++) {
+		printf("Quiz Tema %d completato\n", i + 1);
+		if (numGiocatori) {
+			for (int j = 0; j < numGiocatori; j++) {
+				if (giocatori[j]->statoTemi[i])
+					printf("- %s\n", giocatori[j]->nick);
+			}
+		}
+		putchar('\n');
+	}
+}
 
 // ******************************
 //      GESTIONE MESSAGGI CLIENT
@@ -201,7 +257,7 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
     if (m->type == NICK_PROPOSITION_T) {
     	debug("Il giocatore ha scelto un nickname: %s\n", m->payload);
 
-        // Controllo di non avere già un giocatore associato allo stesso socket descriptor
+        // Controllo che la richiesta non mi arrivi da un giocatore già registrato
         if(getGiocatore(sd) != -1) {
             free(m);
             printf("Il giocatore con sd = %d era già registrato\n", sd);
@@ -243,16 +299,18 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
         if (registraGiocatore(nick, sd) == NULL) {
             return DISCONNECT;
         }
+        
+        // Copio la lista dei temi in un buffer temporaneo
+        char listaTemi[DIM_TEMA * NUM_TEMI];
+        int nread = leggiListaTemi(listaTemi);
+        /*
 
         FILE* temi; 
         if ((temi = fopen("./temi.txt","r")) == NULL) {
             perror("Errore nell'apertura di temi.txt");
             return ERROR;
-        }
-        
-        // Copio la lista dei temi in un buffer temporaneo
-        char listaTemi[DIM_TEMA * NUM_TEMI];
         size_t nread = fread(listaTemi, sizeof(char), DIM_TEMA * NUM_TEMI, temi);
+        }
 
         // Se non ho letto tutto il file o se c'è stato un problema nella lettura, restituisco il codice di errore
         if (ferror(temi) != 0) {
@@ -272,6 +330,7 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
         listaTemi[nread] = 0;
 		
         debug("lista dei temi: %s\n", listaTemi);
+        */
         *toSend = DIM_TEMA * NUM_TEMI;
         return pack(THEME_LIST_T, nread, 0, listaTemi, buffer) ? OK : ERROR;
     }

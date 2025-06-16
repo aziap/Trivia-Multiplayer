@@ -11,7 +11,7 @@ typedef uint8_t flag_t;     // Per le variabili che contengono i flag di un mess
 
 #define SERVER_ADDR "127.0.0.1"
 
-#define MAX_CLIENTS 2
+#define MAX_CLIENTS 20
 #define DIM_BUFFER 1024
 #define DIM_DOMANDA 256
 #define DIM_RISPOSTA 64 // TODO: togliere se si include la dimensione nel pacchetto

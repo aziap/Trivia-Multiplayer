@@ -1,6 +1,8 @@
 #include "costanti.h"
 #include "messaggi.h"
 #include "server_game_logic.h"
+#include "stampe.h"
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +27,6 @@
 
 
 static inline void disconnettiClient(int index, int *sdArr, int *nextSd, fd_set *master) {
-    // DEBUG
     int sd = sdArr[index];
     
     close(sd);
@@ -104,8 +105,25 @@ int main() {
     // Inserisco il listener nel set master
     FD_SET(listener, &master);
     maxfd = listener;
+    
+    // Prelevo e stampo la lista dei temi
+    leggiListaTemi(buffer);
+    char listaTemi[NUM_TEMI][DIM_TEMA];
+    formattaListaTemi(buffer, listaTemi);
+    
+    stampaTitolo();
+    printFrame();
+    printf("Temi:\n");
+    for (int i = 0; i < NUM_TEMI; i++) {
+    	printf("%d - %s\n", i + 1, listaTemi[i]);
+    }
+    printFrame();
+    putchar('\n');
+    stampaPartecipanti();
+    printFrame();
 
     while (1) {
+    	// Copio il master set
         readfd = master;
 
         // Se la select viene interrotta da un segnale, riprovo
@@ -118,7 +136,6 @@ int main() {
             closeAll(listener, client_socket, &numclient);
             exit(EXIT_FAILURE);
         }
-
 
         // Controllo se ci sono nuove richieste di connessione
         if (FD_ISSET(listener, &readfd)) {
@@ -148,7 +165,8 @@ int main() {
 				FD_CLR(newfd, &master);
 				memset(buffer, 0, HEADER_LEN);
 			}
-        }
+        } // END gestione nuove connessioni
+        
         int sd;
         // Controllo se ci sono messaggi dai client connessi
         for (int i = 0; i < numclient; i++) {
@@ -169,6 +187,13 @@ int main() {
                     debug("Client disconnesso, socket: %d\n", sd);
                     // Chiudo il socket e decremento il numero di giocatori
                     disconnettiClient(i, client_socket, &numclient, &master);
+                    // Stampo le informazioni aggiornate sui giocatori
+                    stampaPartecipanti();
+                    // putchar('\n');
+                    stampaClassifica();
+                    // putchar('\n');
+                    stampaQuizCompletati();
+                    printFrame();
                     continue;
                 }
                 // Errore critico
@@ -181,13 +206,12 @@ int main() {
                     closeAll(listener, client_socket, &numclient);
                     exit(EXIT_FAILURE);
                 }
-                // 
                 if (numReceived < 0) {
                     // L'errore non era critico
                     errno = 0;
                     continue; 
                 } 
-                // C'è un nuovo messaggio!
+                // C'è un nuovo messaggio
                 int toSend = -1;
                 int result = gestisciMessaggio(sd, buffer, &toSend);
                 if (result == OK) {
@@ -200,19 +224,25 @@ int main() {
                     }
                     debug("Inviati %d byte\n", ret);
                     memset(buffer, 0, toSend);
-                    continue;
                 }
-                
-                if (result == DISCONNECT) {
+                else if (result == DISCONNECT) {
                     disconnettiClient(i, client_socket, &numclient, &master);
                     debug("Disconnetto il client del socket %d\n", client_socket[i]);
-                    continue;
+                } else {
+		            // c'è stato un errore critico
+		            closeAll(listener, client_socket, &numclient);
+		            exit(EXIT_FAILURE);
                 }
-                // c'è stato un errore critico
-                closeAll(listener, client_socket, &numclient);
-                exit(EXIT_FAILURE);
+                // Stampo le informazioni aggiornate dei giocatori
+                putchar('\n');
+                stampaPartecipanti();
+                // putchar('\n');
+                stampaClassifica();
+                // putchar('\n');
+                stampaQuizCompletati();
+                printFrame();
             } // END gestione socket pronto
-        } // END for(;;) - handling ready client sockets 
+        } // END for(;;) - gestione nuovi messaggi dai client 
     } // END while() - main loop
 
     closeAll(listener, client_socket, &numclient);

@@ -165,7 +165,7 @@ bool incrementaPunteggio(char* nick, uint8_t nuovoPunteggio, uint8_t tema) {
 
 void stampaClassifica(){
 	for(int i = 0; i < NUM_TEMI; i++) {
-		printf ( "Tema %d:\n", i + 1 );
+		printf ( "Punteggio tema %d\n", i + 1 );
 		if(classificaTema[i] == NULL) {
 			putchar('\n');
 			continue;
@@ -175,6 +175,7 @@ void stampaClassifica(){
 			printf("- %s %u\n", cur->nick, cur->punti);
 			cur = cur->next;
 		}
+		putchar('\n');
 	}	
 }
 
@@ -202,13 +203,13 @@ bool rimuoviRankGiocatore(char* nick, uint8_t tema) {
 // @returns int -1 in caso di errore, altrimenti il numero di byte occupati nel buffer
 int serializzaClassifica(char* buffer){
 	if (!contatoreRecord) return 0;
-	int len = contatoreRecord * (DIM_NICK + 2); // 1 byte per il tema + 1 byte per il punteggio 
 	
+	int len = contatoreRecord * (DIM_NICK + 2); // 1 byte per il tema + 1 byte per il punteggio 
 	if (len > MAX_DIM_PAYLOAD) {
 		printf("La classifica contiene troppi record per essere inviata\n");
 		return 0;
 	}
-
+	
 	int offset = 0;
 	for(int i = 0; i < NUM_TEMI; i++) {
 		if (classificaTema[i] == NULL) continue; 
