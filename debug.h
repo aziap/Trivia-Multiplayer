@@ -6,7 +6,7 @@
 
 #ifdef DEBUG_ON
 
-// Print a debug message with [DEBUG] prefix
+// Stampa un messaggio di debug
 static inline void debug(const char *format, ...) {
     printf("[DEBUG] ");
     va_list args;
@@ -17,10 +17,8 @@ static inline void debug(const char *format, ...) {
 
 #else
 
-// If DEBUG_ON is not defined, debug() does nothing
-static inline void debug(const char *format, ...) {
-    // nothing
-}
+// Se DEBUG_ON non è definita, non fa nulla
+static inline void debug(const char *format, ...) {}
 
 #endif // DEBUG_ON
 

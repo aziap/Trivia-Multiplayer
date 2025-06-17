@@ -4,7 +4,7 @@
 1~4~Quale animale possiede una lingua lunga il doppio del proprio corpo?
 1~5~Gli ornitorinchi sono una delle due uniche famiglie di mammiferi ovipari. Qual è il nome dell'altra famiglia?
 2~1~Qual è il nome del celebre pagliaccio nel romanzo "It" di Stephen King?
-2~2~Qual è il nome del libro scritto, nell'immaginario di H.P. Lovecraft, dall'arabo pazzo Abdul Alhazred? 
+2~2~Qual è il nome del libro che, nell'immaginario di H.P. Lovecraft, è stato scritto dall'arabo pazzo Abdul Alhazred? 
 2~3~Come si chiama la più giovane delle sorelle protagoniste in "Piccole Donne"?
 2~4~Nel romanzo "Don Chisciotte della Mancia" di Miguel Cervantes, cosa sono in realtà quelli che Don Chisciotte vede come dei giganti?
 2~5~Da quanti canti è composta la Divina Commedia (in numeri)?

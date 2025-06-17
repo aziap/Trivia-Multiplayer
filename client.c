@@ -1,15 +1,13 @@
+// #ifndef DEBUG_ON 
+// #define DEBUG_ON 1
+// #endif
+#include "debug.h"
+
 #include "costanti.h"
 #include "client.h"
 #include "messaggi.h"
 #include "input_check.h"
 #include "stampe.h"
-
-// #ifndef DEBUG_ON
-// #define DEBUG_ON
-// #endif
-
-#include "debug.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -298,7 +296,7 @@ void svolgiQuiz(char* buffer, int tema) {
             // Leggi la risposta
             leggiStringa(risposta, DIM_BUFFER);
             // Se la risposta è troppo lunga, la tronco alla dimensione massima 
-            // risposta[DIM_RISPOSTA - 1] = 0;	
+            risposta[DIM_RISPOSTA - 1] = 0;	
             // Fai il check per il comando
             if (strcmp(risposta, SHOW_SCORE) == 0) {
                 showScore(buffer);
@@ -323,7 +321,7 @@ void svolgiQuiz(char* buffer, int tema) {
                 risposta[j] = 0;
                 debug("Risposta elaborata: %s\n", risposta);
             }
-            risposta[strcspn(risposta, ' ') - 1] = 0;
+            risposta[strcspn(risposta, " ")] = 0;
             // ImpacchettO la risposta e la mandao al server
             pack(ANSWER_T, DIM_RISPOSTA, 0, risposta, buffer);
             send(sd, buffer, DIM_RISPOSTA + HEADER_LEN, 0);
