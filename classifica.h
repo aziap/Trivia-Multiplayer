@@ -8,8 +8,6 @@
 #include <stdbool.h>	
 
 #include "costanti.h"
-#include "debug.h"
-
 
 // Elemento della classifica. Il tema è implicitamente indicato dall'indice dell'array "classificaTema"
 // @param nick
@@ -29,6 +27,7 @@ int contatoreRecord = 0;
 
 // ********************************
 // Funzioni per modificare le classifiche
+// ********************************
 
 
 // Estrae e restituisce un giocatore dalla classifica passata per riferimento
@@ -36,7 +35,6 @@ int contatoreRecord = 0;
 struct RankGiocatore* estraiGiocatore( struct RankGiocatore** head, char* nick ) {
 	// Lista vuota
 	if ( *head == NULL ) {
-		debug("La lista passata a estraiGiocatore() è vuota!\n");
 		return NULL;
 	}
 	// Estrazione dalla testa
@@ -80,7 +78,6 @@ bool inserisciInClassifica(char* nick, uint8_t tema) {
 	if ( *head == NULL
 	|| (*head)->punti < elem->punti
 	|| ( (*head)->punti ==  elem->punti && strcmp(elem->nick, (*head)->nick) < 0 ) ) {
-		debug("inserisco in testa\n");
 		elem->next = *head;
 		*head = elem;
 		++contatoreRecord;
@@ -113,7 +110,6 @@ bool incrementaPunteggio(char* nick, uint8_t nuovoPunteggio, uint8_t tema) {
 
 	// Il giocatore era già primo in classifica
 	if( !strcmp((*head)->nick, nick) ) {
-		debug("%s era già primo in classifica!\n", nick);
 		(*head)->punti++;
 		return true;
 	}
@@ -127,7 +123,6 @@ bool incrementaPunteggio(char* nick, uint8_t nuovoPunteggio, uint8_t tema) {
 	if ( (*head)->punti < nuovoPunteggio 
 	|| ((*head)->punti == nuovoPunteggio && strcmp(nick, (*head)->nick) < 0) ) {
 		// Il giocatore va spostato in testa alla classifica
-		debug("%s va spostato in testa alla classifica\n", nick);
 		newPos = head;
 	} else {
 		// Scorro finché non trovo la nuova posizione in classifica del giocatore 
@@ -151,32 +146,14 @@ bool incrementaPunteggio(char* nick, uint8_t nuovoPunteggio, uint8_t tema) {
 		}
 		// Ho trovato la nuova posizione del giocatore
 		newPos = &prev;
-		debug("%s verrà inserito dopo %s\n", nick, (*newPos)->nick);
 	}
 	// Inizio la ricerca del rank del giocatore dal punto in cui mi ero fermata
 	cur = estraiGiocatore(newPos, nick);
-	debug("Giocatore trovato! Nome: %s, punti: %u\n", cur->nick, cur->punti);
 	cur->punti++;
 	cur->next = *newPos;
 	*newPos = cur;
 
 	return true;
-}
-
-void stampaClassifica(){
-	for(int i = 0; i < NUM_TEMI; i++) {
-		printf ( "Punteggio tema %d\n", i + 1 );
-		if(classificaTema[i] == NULL) {
-			putchar('\n');
-			continue;
-		}
-		struct RankGiocatore* cur = classificaTema[i];
-		while (cur != NULL) {
-			printf("- %s %u\n", cur->nick, cur->punti);
-			cur = cur->next;
-		}
-		putchar('\n');
-	}	
 }
 
 // Elimina il record di un giocatore da una classifica
@@ -188,8 +165,7 @@ bool rimuoviRankGiocatore(char* nick, uint8_t tema) {
 	}
 	// estrai
 	struct RankGiocatore* r; 
-	if ( ( r = estraiGiocatore(&classificaTema[tema -1], nick) ) == NULL){
-		debug("Errore: giocatore %s non trovato nella classifica del tema %u\n", nick, tema);
+	if ((r = estraiGiocatore(&classificaTema[tema -1], nick) ) == NULL){
 		return false;
 	}
 	free(r);
@@ -224,5 +200,22 @@ int serializzaClassifica(char* buffer){
 	}
 	return len;
 }
+
+void stampaClassifica(){
+	for(int i = 0; i < NUM_TEMI; i++) {
+		printf ( "Punteggio tema %d\n", i + 1 );
+		if(classificaTema[i] == NULL) {
+			putchar('\n');
+			continue;
+		}
+		struct RankGiocatore* cur = classificaTema[i];
+		while (cur != NULL) {
+			printf("- %s %u\n", cur->nick, cur->punti);
+			cur = cur->next;
+		}
+		putchar('\n');
+	}	
+}
+
 
 #endif

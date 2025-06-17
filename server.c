@@ -3,7 +3,6 @@
 #include "server_game_logic.h"
 #include "stampe.h"
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,30 +13,20 @@
 #include <errno.h>
 #include <fcntl.h>
 
-// DEBUG
-// #ifndef DEBUG_ON
-// #define DEBUG_ON
-// #endif
-#include "debug.h"
-// END DEBUG
-
 #define PORT 1919 
 #define MAX_BACKLOG 128 // Numero massimo di connessioni in attesa 
 
 
-
+// TODO: documentare meglio
 static inline void disconnettiClient(int index, int *sdArr, int *nextSd, fd_set *master) {
     int sd = sdArr[index];
-    
     close(sd);
     // Sposto l'ultimo sd nella posizione appena liberata
     //      e decremento il numero di client
     sdArr[index] = sdArr[--(*nextSd)];
 
     // Rimuovo l'sd dal set master
-    debug("Rimuovo il sd dal master set\n");
     FD_CLR(sd, master);
-	debug("Numero di client connessi: %d\n", *nextSd);
     rimuoviGiocatore(sd);
 }
 
@@ -100,8 +89,6 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    debug("Trivia Game Server in ascolto sulla porta %d\n", PORT);
-
     // Inserisco il listener nel set master
     FD_SET(listener, &master);
     maxfd = listener;
@@ -144,7 +131,6 @@ int main() {
                 closeAll(listener, client_socket, &numclient);
                 exit(EXIT_FAILURE);
             }
-            debug("Nuova connessione stabilita. Socket: %d\n", newfd);
 
 		    if (numclient < MAX_CLIENTS) {
 		        // Imposto il socket come non bloccante
@@ -156,7 +142,8 @@ int main() {
 		        pack(CONNECT_OK_T, 0, 0, "", buffer);
 		        send(newfd, buffer, HEADER_LEN, 0);
 				memset(buffer, 0, HEADER_LEN);
-		    } else {
+		    } 
+            else {
 				// Se ho raggiunto il numero massimo di giocatori, mando un messaggio
 				//      all'utente per avvisarlo, e chiudo la connessione
 				pack(MAX_CLI_REACH_T, 0, 0, "", buffer);
@@ -170,21 +157,13 @@ int main() {
         int sd;
         // Controllo se ci sono messaggi dai client connessi
         for (int i = 0; i < numclient; i++) {
-            debug("Numero di utenti connessi: %d\n", numclient);
-            debug("Controllo se ci sono nuovi messaggi\n");
-            
             sd = client_socket[i];
          
-            debug("esamino il socket %d\n", sd);
-            
             if (FD_ISSET(sd, &readfd)) {
                 int numReceived = read(sd, buffer, DIM_BUFFER);
                 
-                debug("ricevuti %d byte\n", numReceived);
-                
                 if (numReceived == 0) {
                     // Client disconnesso
-                    debug("Client disconnesso, socket: %d\n", sd);
                     // Chiudo il socket e decremento il numero di giocatori
                     disconnettiClient(i, client_socket, &numclient, &master);
                     // Stampo le informazioni aggiornate sui giocatori
@@ -195,9 +174,9 @@ int main() {
                     continue;
                 }
 				if (numReceived < 0 
-                    && errno != EWOULDBLOCK 
-                    && errno != EAGAIN 
-                    && errno != EINTR 
+                    && errno != EWOULDBLOCK // Il socket risulta pronto ma non ci sono ancora dati
+                    && errno != EAGAIN      // Come sopra
+                    && errno != EINTR       // System call interrotta da un segnale
                 ) {
 					// Errore critico
                     perror("Errore in recv()");
@@ -212,18 +191,15 @@ int main() {
                 int toSend = -1;
                 int result = gestisciMessaggio(sd, buffer, &toSend);
                 if (result == OK) {
-                	debug("Sto per inviare una risposta a %d\n", client_socket[i]);
                 	int ret;
                     if ((ret = send(sd, buffer, toSend, 0)) == -1) {
                         perror("Errore nella send()");
                         disconnettiClient(i, client_socket, &numclient, &master);
                     }
-                    debug("Inviati %d byte\n", ret);
                     memset(buffer, 0, toSend);
                 }
                 else if (result == DISCONNECT) {
                     disconnettiClient(i, client_socket, &numclient, &master);
-                    debug("Disconnetto il client del socket %d\n", client_socket[i]);
                 } else {
 		            // C'è stato un errore critico
 		            closeAll(listener, client_socket, &numclient);

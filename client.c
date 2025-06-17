@@ -1,13 +1,9 @@
-// #ifndef DEBUG_ON 
-// #define DEBUG_ON 1
-// #endif
-#include "debug.h"
-
 #include "costanti.h"
 #include "client.h"
 #include "messaggi.h"
 #include "input_check.h"
 #include "stampe.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -70,7 +66,6 @@ int connettiUtente(int port) {
 // @returns numero di byte ricevuti
 static inline int attendiMessaggio(char* buffer) {
     int ricevuti = recv(sd, buffer, DIM_BUFFER, 0);
-    debug("Sono uscito dalla recv()\n");
     if (ricevuti == 0) {
         printf("Connessione chiusa dal server, il quiz verrà terminato\n");
         printFrame();
@@ -138,16 +133,15 @@ struct Messaggio* controlloNickname(char* buffer) {
         leggiStringa(buffer, DIM_NICK + 1);
         if ((nickLen = checkNicknameFormat(buffer)) == 0
         || (nickLen > 0 && !newInputFlag)) {
-        	if (nickLen > 0) {
-        		debug("caratteri letti:%s La prossima chiamata di leggiStringa() leggerà un nuovo input\n", buffer);
-        	}
+        	// La prossima chiamata di leggiStringa() leggerà un nuovo input
             printf("Formato non valido: il nickname deve contenere almeno un carattere non spazio e non può superare i 15 caratteri\n");
             newInputFlag = true;
             printFrame();
             continue;
         }
         if (nickLen == -1) {
-        	debug("Nick troppo lungo: %s. La prossima chiamata di leggiStringa() leggerà i byte del vecchio input rimasti nello stream\n", buffer); 
+        	// Il nickname è troppo lungo
+            // La prossima chiamata di leggiStringa() leggerà i byte residui del vecchio input 
         	newInputFlag = false; 
         	continue;
         }
@@ -161,13 +155,10 @@ struct Messaggio* controlloNickname(char* buffer) {
 			perror("Errore nella comunicazione con il server, il quiz verrà terminato\n");
 			return NULL;
         }
-        debug("nick proposto inviato\n");
         memset(buffer, 0, DIM_BUFFER);
         if (attendiMessaggio(buffer) <= 0) return NULL; 
         // Leggo la risposta del server
-        debug("Risposta ricevuta\n");
         struct Messaggio* m = unpack(buffer);
-        debug("Payload del messaggio: %s\n", m->payload);
         return m;
     }
 }
@@ -195,10 +186,10 @@ void scegliNickname(char* buffer) {
         	close(sd);
         	exit(EXIT_FAILURE);
         }
+        // Ho ricevuto la lista dei temi, posso proseguire
     	break;
-    }// Ho ricevuto la lista dei temi, posso proseguire
+    }
     memcpy(buffer, esito->payload, esito->msgLen);
-    debug("Ho ricevuto la lista dei temi: %s\n", esito->payload);
     free(esito);
 }
 
@@ -271,12 +262,10 @@ void svolgiQuiz(char* buffer, int tema) {
     char risposta[DIM_RISPOSTA] = {0};
     struct Messaggio* m;
     while(1) {
-        // Il buffer contiene domanda inviata dal server
+        // Il buffer contiene la domanda inviata dal server
         m = unpack(buffer);
-        // Leggere i flag:
-        // Se non è la prima domanda, stampare l'esito
+        // Se non è la prima domanda, stampo l'esito della risposta precedente
         if (!(m->flags & FIRST_QST)) {
-        	debug("Stampo l'esito della risposta precedente\n");
             printf("Risposta %s\n", m->flags & PREV_ANS_CORRECT ? "corretta" : "sbagliata");
             printFrame();
         }
@@ -320,7 +309,6 @@ void svolgiQuiz(char* buffer, int tema) {
                     risposta[j++] = risposta[i++];
                 }
                 risposta[j] = 0;
-                debug("Risposta elaborata: %s\n", risposta);
             }
             risposta[strcspn(risposta, " ")] = 0;
             // ImpacchettO la risposta e la mandao al server
@@ -367,7 +355,6 @@ int main(int argc, char* argv[]) {
         int port = atoi(argv[1]);
         sd = connettiUtente(port);
         char buffer[DIM_BUFFER] = {0};
-		debug("Connessione col server riuscita\n");
 		
         // Primo messaggio dal server 
         if (attendiMessaggio(buffer) <= 0) {	
@@ -390,7 +377,6 @@ int main(int argc, char* argv[]) {
         	continue;   
 		}
 		printFrame();
-		debug("ScegliNickname() ok\n");
 		
         // Il buffer contiene la lista dei temi, la estraggo e la elaboro
         char listaTemi[NUM_TEMI][DIM_TEMA];

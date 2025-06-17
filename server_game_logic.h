@@ -5,7 +5,6 @@
 #include "classifica.h"
 #include "input_check.h"
 #include "messaggi.h"
-#include "debug.h"
 
 #include <stdio.h>
 
@@ -69,9 +68,6 @@ struct Giocatore* registraGiocatore(char* nick, int sd) {
 	g->punteggioCorrente = 0;
 	g->domandaCorrente = 0;
 
-    debug("Parametri del giocatore:\n nick %s, socket %d, tema %u, punti %u, domanda corrente: %u\n",
-        g->nick, g->sd, g->temaCorrente, g->punteggioCorrente, g->domandaCorrente);
-
 	for (int i = 0 ; i < NUM_TEMI ; i++) {
 		g->statoTemi[i] = false;
 	}
@@ -107,7 +103,6 @@ bool checkNickPreso(char* nick) {
     if (!numGiocatori) return false;	// è il primo giocatore
     int i = 0;
     while (i < numGiocatori && strcmp(nick, giocatori[i]->nick) != 0) {
-    	debug("in checkNickPreso(), giocatore esaminato: %s\n", giocatori[i]->nick); 
         ++i;
     }
     return i < numGiocatori;
@@ -183,10 +178,7 @@ int leggiListaTemi(char* buffer) {
     }
     // La lettura ha avuto successo
     fclose(temi);
-    
     buffer[nread] = 0;
-	
-    debug("lista dei temi: %s\n", buffer);
     return nread;
 }
 
@@ -244,33 +236,22 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
     // I controlli devono essere fatti dal chiamante, 
     //      gestisco il caso come un errore critico
     if (m == NULL) {
-        debug("Errore in gestisciMessaggio(): deserializzazione del messaggio fallita\n");
         return DISCONNECT;
     }
-
-	    debug("in gestisciMessaggio()\ncampi del messaggio:\n- tipo: %u\n- flag: %u\n- len: %d\n- payload: %s\n",
-    m->type, m->flags, m->msgLen, m->payload); 
-    
     // ******************************
     //      scelta di un nickname
     // ******************************
     if (m->type == NICK_PROPOSITION_T) {
-    	debug("Il giocatore ha scelto un nickname: %s\n", m->payload);
-
         // Controllo che la richiesta non mi arrivi da un giocatore già registrato
         if(getGiocatore(sd) != -1) {
             free(m);
             printf("Il giocatore con sd = %d era già registrato\n", sd);
             return DISCONNECT;
         }
-        debug("Il socket non era già presente\n");
-    
         // Controllo la validità del formato.
         //      I controlli sono già stati fatti lato client, se il 
         //      formato non è valido, chiudo la connessione con il giocatore
         if (checkNicknameFormat(m->payload) < 0) {
-            debug("Errore in gestisciMessaggio(): il formato del nick non è valido: %s\n", 
-                m->payload);
             free(m);
             return DISCONNECT;
         }
@@ -283,7 +264,6 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
 
         // Controllo se esiste un giocatore con quel nickname
         if (checkNickPreso(nick)) {
-	        debug("Il nick era già preso\n");
             // Preparo il messaggio di risposta nel buffer
             if (!pack(NICK_UNAVAIL_T, 0, 0, "", buffer)) {
                 return ERROR;
@@ -293,8 +273,6 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
             return OK;
         }
     	
-    	debug("Il nick è disponibile\n");
-        
         // Registro il giocatore
         if (registraGiocatore(nick, sd) == NULL) {
             return DISCONNECT;
@@ -303,34 +281,6 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
         // Copio la lista dei temi in un buffer temporaneo
         char listaTemi[DIM_TEMA * NUM_TEMI];
         int nread = leggiListaTemi(listaTemi);
-        /*
-
-        FILE* temi; 
-        if ((temi = fopen("./temi.txt","r")) == NULL) {
-            perror("Errore nell'apertura di temi.txt");
-            return ERROR;
-        size_t nread = fread(listaTemi, sizeof(char), DIM_TEMA * NUM_TEMI, temi);
-        }
-
-        // Se non ho letto tutto il file o se c'è stato un problema nella lettura, restituisco il codice di errore
-        if (ferror(temi) != 0) {
-            perror("Errore nella lettura di temi.txt");
-            fclose(temi);
-            return ERROR;
-        }
-        
-        if (feof(temi) == 0) {
-            printf("Errore in gestisciMessaggio(): lo spazio allocato per la lettura dei temi è insufficiente\n");
-            fclose(temi);
-            return ERROR;
-        }
-        // La lettura ha avuto successo
-        fclose(temi);
-        
-        listaTemi[nread] = 0;
-		
-        debug("lista dei temi: %s\n", listaTemi);
-        */
         *toSend = DIM_TEMA * NUM_TEMI;
         return pack(THEME_LIST_T, nread, 0, listaTemi, buffer) ? OK : ERROR;
     }
@@ -395,7 +345,6 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
         g->temaCorrente = t;
         g->domandaCorrente = 1;
         
-        debug("Prelevo la prima domanda del tema %u\n", t);
         // Prelevo la prima domanda da domande.txt
         char domanda[DIM_DOMANDA] = {0};
         if (!prelevaRiga(t, 1, domanda, DIM_DOMANDA, "./domande.txt")) {
@@ -442,7 +391,6 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
             g->domandaCorrente = 0;
             // Il flag NO_QST indica che il messaggio non contiene una domanda
             flags ^= NO_QST;
-            debug("Era l'ultima domanda, campo flag: %u\n", flags);
             *toSend = HEADER_LEN;
             return pack(QUESTION_T, 0, flags, "", buffer) ? OK : ERROR;
         }

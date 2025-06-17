@@ -3,9 +3,6 @@
 
 #include "messaggi.h"
 #include "costanti.h"
-#include "debug.h"
-
-// #include <stdbool.h>
 
 // Legge un input dell'utente, fino ad un numero massimo di caratteri.
 // @param buffer: buffer in cui inserire l'input letto
@@ -23,7 +20,6 @@ void stampaClassificaClient(char *msgClassifica, msgsize_t len) {
     for (int i = 1; i <= NUM_TEMI; i++) {
         printf("Punteggio tema %d\n", i);
         if (offset >= len) {
-            debug("non ci sono più record da stampare\n");
             putchar('\n');
             continue;
         }

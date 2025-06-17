@@ -25,7 +25,7 @@ typedef uint8_t flag_t;     // Per le variabili che contengono i flag di un mess
 // #define MAX_DIM_PAYLOAD (DIM_BUFFER - sizeof(msg_t) - sizeof(flag_t) - sizeof(msgsize_t))
 #define SEP '~'    // Separatore
 
-// Costatni usate solo lato client
+// Costanti usate solo lato client
 #define AVVIA_OPT '1' // Comando per avviare il gioco nel menù iniziale
 #define ESCI_OPT '2'  // Comando per uscire dal gioco nel menù iniziale
 #define SHOW_SCORE "show score"

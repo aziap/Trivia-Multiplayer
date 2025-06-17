@@ -2,7 +2,6 @@
 #define INPUT_CHECK_H
 
 #include "costanti.h"
-#include "debug.h"
 
 #include <string.h>
 #include <stdbool.h>
@@ -22,12 +21,10 @@ static inline bool checkStringaNonVuota(char* str) {
 static inline int checkNicknameFormat(char* nick){
 	// Controllo che ci sia almeno un carattere non spazio
     if (!checkStringaNonVuota(nick)) {
-        debug("nessun carattere valido trovato\n");
         return 0;
     }
 	int len = strlen(nick); 
     if (len > DIM_NICK - 1) {
-        debug("Nickname troppo lungo\n");
         return -1;
     }
     return len;
