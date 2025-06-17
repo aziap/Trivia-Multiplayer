@@ -238,6 +238,7 @@ int sceltaTema(char temi[NUM_TEMI][DIM_TEMA], char* buffer) {
         }
         else {
             printf("Scelta non valida\n");
+            printFrame();
             continue;
         }
     } // END loop scelta tema
