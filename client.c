@@ -298,7 +298,7 @@ void svolgiQuiz(char* buffer, int tema) {
             // Leggi la risposta
             leggiStringa(risposta, DIM_BUFFER);
             // Se la risposta è troppo lunga, la tronco alla dimensione massima 
-            risposta[DIM_RISPOSTA - 1] = 0;	
+            // risposta[DIM_RISPOSTA - 1] = 0;	
             // Fai il check per il comando
             if (strcmp(risposta, SHOW_SCORE) == 0) {
                 showScore(buffer);
@@ -310,6 +310,20 @@ void svolgiQuiz(char* buffer, int tema) {
                 break;
             }
             ++giocatore.domandaCorrente;
+            // Tolgo eventuali spazi bianchi in testa e tronco alla prima parola
+            if (risposta[0] == ' ') {
+                int i = 0;
+                while (risposta[i] == ' ') {
+                    i++;
+                }
+                int j = 0;
+                while(risposta[i] != '\n' && risposta[i] != ' ' && risposta[i] != 0) {
+                    risposta[j++] = risposta[i++];
+                }
+                risposta[j] = 0;
+                debug("Risposta elaborata: %s\n", risposta);
+            }
+            risposta[strcspn(risposta, ' ') - 1] = 0;
             // ImpacchettO la risposta e la mandao al server
             pack(ANSWER_T, DIM_RISPOSTA, 0, risposta, buffer);
             send(sd, buffer, DIM_RISPOSTA + HEADER_LEN, 0);
