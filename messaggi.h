@@ -97,7 +97,6 @@ bool pack(msg_t type, msgsize_t len, flag_t flags, char* payload, char* buffer) 
     // Inserisco la dimensione del messaggio
     uint16_t netlen = htons(len); 
     memcpy(buffer + offset, &netlen, sizeof(uint16_t));
-    	(unsigned char)buffer[offset], (unsigned char)buffer[offset+1]);
     offset += sizeof(uint16_t);
 
     // Inserisco i flag
