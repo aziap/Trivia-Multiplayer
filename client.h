@@ -13,7 +13,8 @@ static inline char* leggiStringa(char* buffer, int dim) {
     return buffer;
 }
 
-
+// @param msgClassifica: buffer che contiene i record della classifica 
+// @param len: lunghezza complessiva in byte della classifica
 void stampaClassificaClient(char *msgClassifica, msgsize_t len) {
     int offset = 0;
     char tmpNick[DIM_NICK] = {0};

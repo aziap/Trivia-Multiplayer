@@ -48,8 +48,6 @@ static inline int getGiocatore(int sd) {
 
 // NOTA: questa funzione assume che la stringa passata sia corretta secondo i parametri richiesti. 
 //		 I controlli vanno fatti in un'altra funzione.
-// TODO: deallocare la memoria quando il giocatore si disconnette
-// TODO (ma da un'altra parte): chiudere il socket se la funzione fallisce
 struct Giocatore* registraGiocatore(char* nick, int sd) {
 	// Il controllo sul numero di giocatori massimo deve essere fatto
     //      dall chiamante, gestisco il caso come un errore critico
@@ -156,7 +154,7 @@ static inline int gestisciRispostaQuiz(char* rispostaGiocatore, struct Giocatore
     return strncasecmp(rispostaCorretta + 4, rispostaGiocatore, strlen(rispostaCorretta)) != 0 ? 0 : 1;
 }
 
-// TODO: commentare
+// Copia il contenuto di temi.txt nel buffer passato come argomento
 int leggiListaTemi(char* buffer) {
     FILE* temi; 
     if ((temi = fopen("./temi.txt","r")) == NULL) {
@@ -362,8 +360,6 @@ int gestisciMessaggio(int sd, char* buffer, int* toSend) {
     //      Risposta ad una domanda del quiz
     // *****************************************
     else if (m->type == ANSWER_T) {
-        // TODO: per gestire questo caso, meglio fare una funzione apposita
-
         // Controlli di consistenza
         if (g->temaCorrente == 0) {
             free(m);

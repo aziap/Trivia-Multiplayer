@@ -63,7 +63,6 @@ bool inserisciInClassifica(char* nick, uint8_t tema) {
 		return false;
 	}
 	struct RankGiocatore* elem = malloc( sizeof( struct RankGiocatore ) );
-	// TODO: liberare la memoria quando il giocatore esce dal gioco
 	if (elem == NULL) {
 		perror("errore in inserisciInClassifica()\nmalloc()");
 		return false;

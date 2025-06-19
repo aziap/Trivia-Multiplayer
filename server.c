@@ -17,19 +17,31 @@
 #define MAX_BACKLOG 128 // Numero massimo di connessioni in attesa 
 
 
-// TODO: documentare meglio
+// Esegue tutte le operazioni necessarie alla chiusura della connessione, 
+//      modifica dell'array dei socket client e pulizia delle strutture 
+//      dati legate ad un giocatore
+// @param index: indice del socket descriptor del client nell'array che li contiene
+// @param sdArr: array che contiene tutti i sd dei client
+// @param nextSd: indirizzo della variabile che contiene l'indice della posizione
+//      all'interno dell'array in cui salvare il prossimo sd. È anche in contatore
+//      dei client connessi
+// @param master: FD set master
 static inline void disconnettiClient(int index, int *sdArr, int *nextSd, fd_set *master) {
     int sd = sdArr[index];
     close(sd);
     // Sposto l'ultimo sd nella posizione appena liberata
     //      e decremento il numero di client
     sdArr[index] = sdArr[--(*nextSd)];
-
     // Rimuovo l'sd dal set master
     FD_CLR(sd, master);
+    // Libero la memoria di tutte le strutture dati legate al giocatore
     rimuoviGiocatore(sd);
 }
 
+// Chiude tutte le connessioni con i client e il socket listener
+// @param listenerSd: sd del socket usato per accettare nuove connessioni
+// @param sdArr: array che contiene i sd dei client
+// @param nextSd: riferimento al contatore dei socket client
 static inline void closeAll( int listenerSd, int* sdArr, int* nextSd) {
     while(*nextSd > 0) {
         rimuoviGiocatore(sdArr[--(*nextSd)]);
@@ -66,8 +78,8 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    // Riutilizza il socket se...?
-    // TODO: documentare meglio
+    // Setto l'opzione SO_REUSEADDR per poter riutilizzare lo stesso socket
+    //      anche subito dopo un crash o un segnale di arresto del processo
     int yes = 1;
     setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 
@@ -184,7 +196,7 @@ int main() {
                     exit(EXIT_FAILURE);
                 }
                 if (numReceived < 0) {
-					// Errore non critico
+					// Errore non critico, il socket non ha ancora dati pronti
 					continue;
 				}
                 // C'è un nuovo messaggio

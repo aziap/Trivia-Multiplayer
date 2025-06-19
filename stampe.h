@@ -8,6 +8,9 @@ static inline void stampaTitolo() {
     printf("Trivia Quiz\n");
 }
 
+// Preleva la lista dei temi dal buffer, così come inviata dal server,
+//      e inserisce ogni descrizione di tema in un diverso elemento
+//      dell'array "listaTemi" passato
 static inline void formattaListaTemi(char* buffer, char listaTemi[NUM_TEMI][DIM_TEMA]) {
         // Il buffer contiene la lista dei temi, la estraggo e la elaboro
         int daCopiare = 0;  // Numero di caratteri da copiare 

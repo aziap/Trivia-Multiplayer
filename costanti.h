@@ -14,7 +14,7 @@ typedef uint8_t flag_t;     // Per le variabili che contengono i flag di un mess
 #define MAX_CLIENTS 20
 #define DIM_BUFFER 1024
 #define DIM_DOMANDA 256
-#define DIM_RISPOSTA 64 // TODO: togliere se si include la dimensione nel pacchetto
+#define DIM_RISPOSTA 64 
 #define DIM_NICK 16    // Include il carattere di fine stringa 
 #define DIM_TEMA 64     // Caratteri massimi dell'argomento di un tema
 #define NUM_TEMI 2
@@ -22,7 +22,6 @@ typedef uint8_t flag_t;     // Per le variabili che contengono i flag di un mess
 
 #define HEADER_LEN (sizeof(msg_t) + sizeof(flag_t) + sizeof(msgsize_t))
 #define MAX_DIM_PAYLOAD (DIM_BUFFER - HEADER_LEN)
-// #define MAX_DIM_PAYLOAD (DIM_BUFFER - sizeof(msg_t) - sizeof(flag_t) - sizeof(msgsize_t))
 #define SEP '~'    // Separatore
 
 // Costanti usate solo lato client

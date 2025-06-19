@@ -11,21 +11,20 @@
 #include <stdbool.h>
 
 // Tipi dei messaggi inviati dal server
-const msg_t UNEXPECTED_ERR_T = 0;   // Generico per errori inaspettati
-const msg_t MAX_CLI_REACH_T = 1;    // Il numero di utenti massimi è stato raggiunto
-const msg_t CONNECT_OK_T = 2;       // La connessione è stata accettata
-const msg_t THEME_LIST_T = 3;       // Lista dei temi
-const msg_t QUESTION_T = 4;         // Domanda del quiz
-const msg_t RANK_T = 5;             // Classifica
-const msg_t NICK_UNAVAIL_T = 6;     // Nickname già preso (in caso contratio, 
+const msg_t MAX_CLI_REACH_T = 0;    // Il numero di utenti massimi è stato raggiunto
+const msg_t CONNECT_OK_T = 1;       // La connessione è stata accettata
+const msg_t THEME_LIST_T = 2;       // Lista dei temi
+const msg_t QUESTION_T = 3;         // Domanda del quiz
+const msg_t RANK_T = 4;             // Classifica
+const msg_t NICK_UNAVAIL_T = 5;     // Nickname già preso (in caso contratio, 
                                     //     non mando conferme, mando 
                                     //     direttamente lista dei temi)
 
 // Tipi dei messaggi inviati dal client
-const msg_t NICK_PROPOSITION_T = 10;
-const msg_t THEME_CHOICE_T = 11;
-const msg_t ANSWER_T = 12;
-const msg_t ENDQUIZ_T = 13; // NON SERVE
+const msg_t NICK_PROPOSITION_T = 10;    // Nick scelto dal giocatore
+const msg_t THEME_CHOICE_T = 11;        // Tema del quiz a cui il giocatore vuole partecipare
+const msg_t ANSWER_T = 12;              // Risposta ad una domanda del quiz
+const msg_t ENDQUIZ_T = 13;         
 const msg_t SHOW_SCORE_T = 14;
 
 // Definiscono il range dei tipi validi
@@ -55,10 +54,10 @@ FLAG: flag_t (1 Byte)
     Significativo nei messaggi che contengono le domande del quiz per dare al processo client
         quali informazioni aggiuntive stampare e se farlo. 
         Ad esempio, uno dei flag indica l'esito della risposta precedente del quiz;
-        un altro indica se è la prima domanda, ecc (TODO: espandere).
+        un altro indica se è la prima domanda, ecc.
 PAYLOAD: char[] (0 - 1020 Byte)
-    Contenuto del paccketto. Nei messaggi del client, contiene l'input dell'utente,
-        più delle informazioni di controllo aggiunte dal processo client.
+    Contenuto del pacchetto. Nei messaggi del client, contiene l'input dell'utente,
+        eventualmente elaborato dall'applicazione client.
         Nei messaggi del server sono i contenuti richiesti dal client.
 
 */
